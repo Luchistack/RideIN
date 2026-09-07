@@ -3,19 +3,29 @@ import { NEARBY_RIDERS } from '../../data/riders.js'
 import { FARES, formatNaira } from '../../data/fares.js'
 import { MILLENNIUM_ESTATE } from '../../data/estate.js'
 import { useSimulatedPositions } from '../../hooks/useSimulatedMotion.js'
+import { useMyLocation } from '../../hooks/useMyLocation.js'
 import { haversineMeters, formatDistance, formatEta } from '../../lib/distance.js'
+import { useAuth } from '../../context/AuthContext.jsx'
 import FareLine from '../ui/FareLine.jsx'
 import GoogleEstateMap from './GoogleEstateMap.jsx'
+import LocationShare from './LocationShare.jsx'
 
 const YOU = { position: MILLENNIUM_ESTATE.gate, label: 'You — Block 14 gate', icon: '●' }
 
 // Ride flow, one stage at a time:
 // idle -> request (choose ride type) -> requesting -> enroute -> rating -> done
 export default function PassengerPhone() {
+  const { user } = useAuth()
+
   // Riders "drive around" the estate a little every few seconds, so distance
   // and ETA below are live, not a fixed number — swap this for real GPS
   // updates from your backend once riders report their own position.
   const riders = useSimulatedPositions(NEARBY_RIDERS, MILLENNIUM_ESTATE.center)
+
+  // The passenger's own real, browser-reported location (Geolocation API),
+  // shared so a rider can see it. Falls back to a manual lat/lng form when
+  // permission is denied or unavailable — see useMyLocation.js.
+  const myLocation = useMyLocation(user?.id)
 
   const [selectedId, setSelectedId] = useState(null)
   const [rideType, setRideType] = useState('pickup')
@@ -37,9 +47,22 @@ export default function PassengerPhone() {
     setTip(0)
   }
 
+  // Used by "Cancel ride" during requesting/enroute — puts everything back
+  // to a clean "not currently riding" state, same shape as a fresh load.
+  function resetRide() {
+    setSelectedId(null)
+    setStage('idle')
+    setStars(0)
+    setTip(0)
+  }
+
   const selected = riders.find((r) => r.id === selectedId) || null
   const selectedMeters = selected ? haversineMeters(YOU.position, selected.position) : 0
   const fare = FARES[rideType]
+  const ratingLine =
+    stars > 0
+      ? `You rated ${selected?.name} ${stars}★${tip ? ` and tipped ${formatNaira(tip)} in cash` : ''}.`
+      : `You didn't leave ${selected?.name} a rating${tip ? `, but tipped ${formatNaira(tip)} in cash` : ''}.`
 
   return (
     <div className="rounded-[34px] border border-line bg-surface p-3.5 shadow-soft dark:border-line-dark dark:bg-surface-dark">
@@ -62,18 +85,35 @@ export default function PassengerPhone() {
             center={MILLENNIUM_ESTATE.center}
             zoom={MILLENNIUM_ESTATE.zoom}
             you={YOU}
-            markers={riders.map((rider) => {
-              const meters = haversineMeters(YOU.position, rider.position)
-              return {
-                id: rider.id,
-                position: rider.position,
-                icon: '🛺',
-                label: `${rider.name} · ★${rider.rating} · ${formatDistance(meters)} · ${formatEta(meters)}`,
-                selected: selectedId === rider.id,
-                onClick: () => selectRider(rider.id),
-              }
-            })}
+            markers={[
+              ...riders.map((rider) => {
+                const meters = haversineMeters(YOU.position, rider.position)
+                return {
+                  id: rider.id,
+                  position: rider.position,
+                  icon: '🛺',
+                  label: `${rider.name} · ★${rider.rating} · ${formatDistance(meters)} · ${formatEta(meters)}`,
+                  selected: selectedId === rider.id,
+                  onClick: () => selectRider(rider.id),
+                }
+              }),
+              ...(myLocation.location
+                ? [
+                    {
+                      id: 'my-shared-location',
+                      position: myLocation.location,
+                      icon: '📍',
+                      label: 'Your shared location',
+                      tone: 'accent',
+                    },
+                  ]
+                : []),
+            ]}
           />
+        </div>
+
+        <div className="mx-[14px] mb-3">
+          <LocationShare location={myLocation} />
         </div>
 
         <div className="mx-[14px] mb-3 flex gap-2 overflow-x-auto pb-0.5">
@@ -85,13 +125,14 @@ export default function PassengerPhone() {
                 key={rider.id}
                 type="button"
                 onClick={() => selectRider(rider.id)}
-                className={`flex flex-none items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11.5px] font-semibold whitespace-nowrap ${
+                className={`flex flex-none items-center gap-1.5 rounded-full border py-1 pl-1 pr-3 text-[11.5px] font-semibold whitespace-nowrap ${
                   isSelected
                     ? 'border-accent bg-accent-tint text-accent-deep dark:bg-accent-tint-dark dark:text-accent-light'
                     : 'border-line bg-surface text-ink-soft dark:border-line-dark dark:bg-surface-dark dark:text-ink-soft-dark'
                 }`}
               >
-                🛺 {rider.name} <span className="font-mono">{formatDistance(meters)}</span>
+                <img src={rider.photo} alt="" className="h-5 w-5 flex-none rounded-full object-cover" />
+                {rider.name} <span className="font-mono">{formatDistance(meters)}</span>
               </button>
             )
           })}
@@ -106,11 +147,20 @@ export default function PassengerPhone() {
 
           {stage === 'request' && selected && (
             <>
-              <div className="mb-2.5 flex items-center justify-between text-sm font-bold">
-                <span>{selected.name}</span>
-                <span className="text-[12.5px] font-semibold text-accent dark:text-accent-light">
-                  ★ {selected.rating} · {formatDistance(selectedMeters)} · {formatEta(selectedMeters)}
-                </span>
+              <div className="mb-2.5 flex items-center gap-2.5">
+                <img
+                  src={selected.photo}
+                  alt=""
+                  className="h-11 w-11 flex-none rounded-full border border-line object-cover dark:border-line-dark"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between text-sm font-bold">
+                    <span className="truncate">{selected.name}</span>
+                  </div>
+                  <span className="text-[12px] font-semibold text-accent dark:text-accent-light">
+                    ★ {selected.rating} · {formatDistance(selectedMeters)} · {formatEta(selectedMeters)}
+                  </span>
+                </div>
               </div>
               <div className="mb-3 flex gap-1.5 rounded-[10px] bg-surface-2 p-1 dark:bg-surface-2-dark">
                 {Object.values(FARES).map((f) => (
@@ -131,7 +181,7 @@ export default function PassengerPhone() {
               <FareLine label="Rider's fare" value={formatNaira(fare.riderFare)} />
               <FareLine label="Service fee" value={formatNaira(fare.serviceFee)} />
               <div className="mt-1 flex items-center justify-between border-t border-dashed border-line pt-2 dark:border-line-dark">
-                <span className="text-[13px]">From your wallet</span>
+                <span className="text-[13px]">Pay by bank transfer</span>
                 <b className="font-mono text-[15px] text-brand dark:text-brand-light">{formatNaira(fare.total)}</b>
               </div>
               <button
@@ -150,9 +200,16 @@ export default function PassengerPhone() {
           {stage === 'requesting' && selected && (
             <>
               <div className="mb-1.5 text-sm font-bold">Confirming your ride…</div>
-              <p className="text-[11.5px] text-ink-faint dark:text-ink-faint-dark">
+              <p className="mb-3 text-[11.5px] text-ink-faint dark:text-ink-faint-dark">
                 {selected.name} is on the way to your pin.
               </p>
+              <button
+                type="button"
+                onClick={resetRide}
+                className="w-full rounded-full border border-danger py-2.5 text-sm font-bold text-danger hover:bg-danger/5 dark:border-danger-dark dark:text-danger-dark dark:hover:bg-danger-dark/10"
+              >
+                Cancel ride
+              </button>
             </>
           )}
 
@@ -165,14 +222,21 @@ export default function PassengerPhone() {
                 </span>
               </div>
               <p className="mb-3 text-[11.5px] text-ink-faint dark:text-ink-faint-dark">
-                Fare already settled from your wallet. Nothing to pay on arrival.
+                Pay {selected.name} by bank transfer once the ride is done — nothing to pay on arrival right now.
               </p>
               <button
                 type="button"
                 onClick={() => setStage('rating')}
-                className="w-full rounded-[11px] bg-brand py-3 text-sm font-bold text-white hover:bg-brand-deep"
+                className="mb-2.5 w-full rounded-[11px] bg-brand py-3 text-sm font-bold text-white hover:bg-brand-deep"
               >
                 Simulate arrival
+              </button>
+              <button
+                type="button"
+                onClick={resetRide}
+                className="w-full rounded-full border border-danger py-2.5 text-sm font-bold text-danger hover:bg-danger/5 dark:border-danger-dark dark:text-danger-dark dark:hover:bg-danger-dark/10"
+              >
+                Cancel ride
               </button>
             </>
           )}
@@ -227,8 +291,7 @@ export default function PassengerPhone() {
                 ✓ Ride closed out
               </div>
               <p className="text-center text-[11.5px] text-ink-faint dark:text-ink-faint-dark">
-                You rated {selected.name} {stars || 5}★{tip ? ` and tipped ${formatNaira(tip)} in cash` : ''}. Tap
-                another rider anytime.
+                {ratingLine} Tap another rider anytime.
               </p>
             </>
           )}

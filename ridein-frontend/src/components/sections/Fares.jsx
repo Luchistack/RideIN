@@ -53,7 +53,7 @@ function FareCard({ fare }) {
       </div>
       <div className="mt-4 flex gap-1.5 text-[12.5px] text-ink-faint dark:text-ink-faint-dark">
         <span>💬</span>
-        <span>Paid from your wallet · {formatNaira(fare.riderFare)} remitted to the rider daily</span>
+        <span>Paid by bank transfer per ride · {formatNaira(fare.riderFare)} remitted to the rider daily</span>
       </div>
     </div>
   )

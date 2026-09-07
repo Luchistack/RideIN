@@ -3,7 +3,7 @@ import SectionHead from '../ui/SectionHead.jsx'
 const STEPS = [
   { n: 1, title: 'Open the map', body: 'See every verified rider currently online near your estate, with wait time and rating.' },
   { n: 2, title: 'Choose your rider', body: "Pick who you want. If they're not free, choose another — no ride is forced on you." },
-  { n: 3, title: 'Pay from your wallet', body: 'Fund your RideIN wallet by transfer once. Every ride after that is one tap — no cash changes hands.' },
+  { n: 3, title: 'Pay by bank transfer', body: 'Transfer the fare straight to RideIN\'s account for that ride — no pre-funded balance, no cash changes hands.' },
   { n: 4, title: 'Rate, and tip if you like', body: "Rate the ride and leave an optional cash tip. The rider's fare is remitted to them at day's end." },
 ]
 

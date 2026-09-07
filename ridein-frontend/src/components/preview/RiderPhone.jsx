@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { WAITING_PASSENGERS } from '../../data/passengers.js'
 import { FARES, formatNaira } from '../../data/fares.js'
 import { MILLENNIUM_ESTATE } from '../../data/estate.js'
 import { useSimulatedPosition } from '../../hooks/useSimulatedMotion.js'
 import { haversineMeters, formatDistance, formatEta } from '../../lib/distance.js'
+import { readMostRecentSharedLocation, subscribeToSharedLocations } from '../../lib/sharedLocation.js'
 import FareLine from '../ui/FareLine.jsx'
 import GoogleEstateMap from './GoogleEstateMap.jsx'
 
@@ -19,17 +20,51 @@ export default function RiderPhone() {
   const [accepted, setAccepted] = useState(false)
   const [summary, setSummary] = useState(START_SUMMARY)
 
+  // A real passenger's shared GPS location (from PassengerPhone's "Share my
+  // location" control), if any exists on this browser — falls back to null
+  // so the rest of the demo (simulated WAITING_PASSENGERS) works unchanged
+  // when nobody has shared a real location yet (e.g. in an automated test
+  // browser with no location permission granted).
+  const [sharedLocation, setSharedLocation] = useState(() => readMostRecentSharedLocation())
+
+  useEffect(() => {
+    return subscribeToSharedLocations(() => setSharedLocation(readMostRecentSharedLocation()))
+  }, [])
+
+  // When a passenger has shared a real location, show it as one more
+  // "waiting passenger" a rider can view and accept — same flow as the
+  // simulated ones, just driven by a real lat/lng instead of a fake one.
+  const passengers = sharedLocation
+    ? [
+        ...WAITING_PASSENGERS,
+        {
+          id: 'shared-live-passenger',
+          name: 'Live passenger (shared GPS)',
+          position: { lat: sharedLocation.lat, lng: sharedLocation.lng },
+          fareType: 'pickup',
+          isReal: true,
+        },
+      ]
+    : WAITING_PASSENGERS
+
   function viewPassenger(passengerId) {
     setViewingId(passengerId)
     setAccepted(false)
   }
 
-  const viewing = WAITING_PASSENGERS.find((p) => p.id === viewingId) || null
+  const viewing = passengers.find((p) => p.id === viewingId) || null
   const fare = viewing ? FARES[viewing.fareType] : null
   const viewingMeters = viewing ? haversineMeters(myPosition, viewing.position) : 0
 
   function backToSummary() {
     setSummary((s) => ({ rides: s.rides + 1, earned: s.earned + fare.riderFare, tips: s.tips }))
+    setViewingId(null)
+    setAccepted(false)
+  }
+
+  // Used by "Cancel ride" once accepted — back to available, nothing left
+  // selected or accepted.
+  function cancelRide() {
     setViewingId(null)
     setAccepted(false)
   }
@@ -55,13 +90,13 @@ export default function RiderPhone() {
             center={MILLENNIUM_ESTATE.center}
             zoom={MILLENNIUM_ESTATE.zoom}
             you={{ position: myPosition, label: 'You', icon: '🛺' }}
-            markers={WAITING_PASSENGERS.map((passenger) => {
+            markers={passengers.map((passenger) => {
               const meters = haversineMeters(myPosition, passenger.position)
               return {
                 id: passenger.id,
                 position: passenger.position,
                 tone: 'accent',
-                icon: '👤',
+                icon: passenger.isReal ? '📍' : '👤',
                 label: `${passenger.name} · ${FARES[passenger.fareType].label} · ${formatDistance(meters)}`,
                 selected: viewingId === passenger.id,
                 onClick: () => viewPassenger(passenger.id),
@@ -71,7 +106,7 @@ export default function RiderPhone() {
         </div>
 
         <div className="mx-[14px] mb-3 flex gap-2 overflow-x-auto pb-0.5">
-          {WAITING_PASSENGERS.map((passenger) => {
+          {passengers.map((passenger) => {
             const meters = haversineMeters(myPosition, passenger.position)
             const isSelected = viewingId === passenger.id
             return (
@@ -85,7 +120,8 @@ export default function RiderPhone() {
                     : 'border-line bg-surface text-ink-soft dark:border-line-dark dark:bg-surface-dark dark:text-ink-soft-dark'
                 }`}
               >
-                👤 {passenger.name} <span className="font-mono">{formatDistance(meters)}</span>
+                {passenger.isReal ? '📍' : '👤'} {passenger.name}{' '}
+                <span className="font-mono">{formatDistance(meters)}</span>
               </button>
             )
           })}
@@ -125,7 +161,7 @@ export default function RiderPhone() {
                 Accept ride
               </button>
               <p className="mt-2 text-center text-[11.5px] text-ink-faint dark:text-ink-faint-dark">
-                Already settled from their wallet — collect nothing.
+                Already paid by bank transfer to RideIN — collect nothing from the passenger.
               </p>
             </>
           )}
@@ -133,15 +169,25 @@ export default function RiderPhone() {
           {viewing && accepted && (
             <>
               <div className="mb-1.5 text-center text-sm font-bold text-good dark:text-good-dark">✓ Accepted</div>
-              <p className="mb-3.5 text-center text-[11.5px] text-ink-faint dark:text-ink-faint-dark">
+              <p className="mb-1.5 text-center text-[11.5px] text-ink-faint dark:text-ink-faint-dark">
                 Heading to {viewing.name} now.
+              </p>
+              <p className="mb-3.5 text-center font-mono text-[11.5px] text-ink-faint dark:text-ink-faint-dark">
+                {viewing.isReal ? 'Live GPS' : 'Simulated'} · {formatDistance(viewingMeters)} · {formatEta(viewingMeters)}
               </p>
               <button
                 type="button"
                 onClick={backToSummary}
-                className="w-full rounded-full border border-line py-3 text-sm font-bold hover:border-ink-faint dark:border-line-dark dark:hover:border-ink-faint-dark"
+                className="mb-2.5 w-full rounded-full border border-line py-3 text-sm font-bold hover:border-ink-faint dark:border-line-dark dark:hover:border-ink-faint-dark"
               >
                 Back to today's summary
+              </button>
+              <button
+                type="button"
+                onClick={cancelRide}
+                className="w-full rounded-full border border-danger py-2.5 text-sm font-bold text-danger hover:bg-danger/5 dark:border-danger-dark dark:text-danger-dark dark:hover:bg-danger-dark/10"
+              >
+                Cancel ride
               </button>
             </>
           )}

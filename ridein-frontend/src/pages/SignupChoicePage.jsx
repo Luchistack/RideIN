@@ -6,7 +6,7 @@ const OPTIONS = [
     to: '/signup/passenger',
     icon: '🧍',
     title: 'I need rides',
-    body: 'Book keke rides around Millennium Estate, pay from your wallet, rate your riders.',
+    body: 'Book keke rides around Millennium Estate, pay by bank transfer per ride, rate your riders.',
   },
   {
     to: '/signup/rider',

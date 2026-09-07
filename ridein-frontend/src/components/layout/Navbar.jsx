@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import Button from '../ui/Button.jsx'
 import Logo from '../ui/Logo.jsx'
 import ThemeToggle from '../ui/ThemeToggle.jsx'
+import Avatar from '../ui/Avatar.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 
 const LINKS = [
@@ -33,7 +34,7 @@ export default function Navbar() {
             </li>
           ))}
         </ul>
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center justify-end gap-2.5">
           <ThemeToggle />
           {!user && (
             <>
@@ -45,21 +46,33 @@ export default function Navbar() {
               </Button>
             </>
           )}
-          {user && user.role === 'rider' && (
+          {/* Rider and passenger get the identical set of account links —
+              profile, dashboard, customer care, log out — nothing here
+              differs by role beyond where each link actually takes them.
+              An admin account gets none of this (just Dashboard + Log out,
+              below), so there's nothing in the navbar that would ever hint
+              an admin is logged in. */}
+          {user && (user.role === 'rider' || user.role === 'passenger') && (
             <>
+              <Link to="/profile" className="flex items-center" aria-label="Your profile">
+                <Avatar name={user.name} photo={user.photo} size={30} tone={user.role === 'rider' ? 'accent' : 'brand'} />
+              </Link>
               <Button as={Link} to="/dashboard" variant="ghost" size="sm">
                 Dashboard
+              </Button>
+              <Button as={Link} to="/support" variant="ghost" size="sm">
+                Support
               </Button>
               <Button variant="primary" size="sm" onClick={logout}>
                 Log out
               </Button>
             </>
           )}
-          {user && user.role === 'passenger' && (
+          {user && user.role === 'admin' && (
             <>
-              <span className="hidden text-[13px] font-semibold text-ink-soft dark:text-ink-soft-dark sm:inline">
-                Hi, {user.name.split(' ')[0]}
-              </span>
+              <Button as={Link} to="/dashboard" variant="ghost" size="sm">
+                Dashboard
+              </Button>
               <Button variant="primary" size="sm" onClick={logout}>
                 Log out
               </Button>

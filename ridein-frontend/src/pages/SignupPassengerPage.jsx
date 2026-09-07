@@ -4,32 +4,45 @@ import AuthLayout from '../components/auth/AuthLayout.jsx'
 import GoogleSignInButton from '../components/auth/GoogleSignInButton.jsx'
 import FormField from '../components/ui/FormField.jsx'
 import Stepper from '../components/ui/Stepper.jsx'
-import { formatNaira } from '../data/fares.js'
 import { useAuth } from '../context/AuthContext.jsx'
 
-const STEPS = ['Account', 'Wallet']
-const TOP_UP_AMOUNTS = [1000, 2000, 5000]
+const STEPS = ['Account', 'How you pay']
 
 export default function SignupPassengerPage() {
-  const { signupPassenger } = useAuth()
+  const { signupPassenger, isEmailTaken } = useAuth()
   const navigate = useNavigate()
 
   const [step, setStep] = useState(1)
   const [account, setAccount] = useState({ name: '', email: '', authMethod: 'email' })
-  const [topUp, setTopUp] = useState(0)
+  const [error, setError] = useState('')
 
   function handleAccountSubmit(e) {
     e.preventDefault()
+    if (isEmailTaken(account.email)) {
+      setError('An account with this email already exists. Try logging in instead.')
+      return
+    }
+    setError('')
     setStep(2)
   }
 
   function handleGoogle(profile) {
+    if (isEmailTaken(profile.email)) {
+      setError('An account with this email already exists. Try logging in instead.')
+      return
+    }
     setAccount({ name: profile.name, email: profile.email, authMethod: 'google' })
+    setError('')
     setStep(2)
   }
 
   function finish() {
-    signupPassenger({ ...account, walletTopUp: topUp })
+    const result = signupPassenger(account)
+    if (!result.ok) {
+      setError(result.error)
+      setStep(1)
+      return
+    }
     navigate('/#app')
   }
 
@@ -57,6 +70,7 @@ export default function SignupPassengerPage() {
               value={account.email}
               onChange={(e) => setAccount((a) => ({ ...a, email: e.target.value, authMethod: 'email' }))}
             />
+            {error && <p className="mb-4 text-[12.5px] font-semibold text-danger dark:text-danger-dark">{error}</p>}
             <button
               type="submit"
               className="w-full rounded-full bg-brand py-3 text-sm font-bold text-white hover:bg-brand-deep"
@@ -78,40 +92,23 @@ export default function SignupPassengerPage() {
       {step === 2 && (
         <div>
           <p className="mb-4 text-[13.5px] text-ink-soft dark:text-ink-soft-dark">
-            Optional — fund your RideIN wallet now by transfer, or skip and do it later. Every ride is paid from
-            this balance, never cash.
+            RideIN has no pre-funded wallet — you pay by direct bank transfer, once per completed ride, straight to
+            RideIN's account. There's nothing to fund now.
           </p>
-          <div className="mb-5 flex gap-2">
-            {TOP_UP_AMOUNTS.map((amount) => (
-              <button
-                key={amount}
-                type="button"
-                onClick={() => setTopUp(amount)}
-                className={`flex-1 rounded-lg border py-2.5 font-mono text-[13px] font-semibold ${
-                  topUp === amount
-                    ? 'border-brand bg-brand-tint text-brand dark:bg-brand-tint-dark dark:text-brand-light'
-                    : 'border-line bg-surface dark:border-line-dark dark:bg-surface-dark'
-                }`}
-              >
-                {formatNaira(amount)}
-              </button>
-            ))}
+          <div className="mb-5 rounded-xl border border-line bg-paper p-4 text-[12.5px] dark:border-line-dark dark:bg-paper-dark">
+            <p className="mb-1 font-semibold">RideIN's transfer details (shown again after every ride):</p>
+            <p className="font-mono text-ink-soft dark:text-ink-soft-dark">RideIN Ltd · 0123456789 · Demo Bank</p>
+            <p className="mt-1.5 text-ink-faint dark:text-ink-faint-dark">
+              Demo only — no real transfer is needed to continue.
+            </p>
           </div>
-          {topUp > 0 && (
-            <div className="mb-5 rounded-xl border border-line bg-paper p-4 text-[12.5px] dark:border-line-dark dark:bg-paper-dark">
-              <p className="mb-1 font-semibold">Transfer {formatNaira(topUp)} to:</p>
-              <p className="font-mono text-ink-soft dark:text-ink-soft-dark">RideIN Wallets Ltd · 0123456789 · Demo Bank</p>
-              <p className="mt-1.5 text-ink-faint dark:text-ink-faint-dark">
-                Demo only — no real transfer is needed to continue.
-              </p>
-            </div>
-          )}
+          {error && <p className="mb-4 text-[12.5px] font-semibold text-danger dark:text-danger-dark">{error}</p>}
           <button
             type="button"
             onClick={finish}
             className="w-full rounded-full bg-brand py-3 text-sm font-bold text-white hover:bg-brand-deep"
           >
-            {topUp > 0 ? "I've sent it — finish" : 'Skip for now — finish'}
+            Got it — finish
           </button>
         </div>
       )}

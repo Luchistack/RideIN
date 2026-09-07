@@ -55,6 +55,23 @@ export default {
       boxShadow: {
         soft: '0 1px 2px rgba(27,33,29,0.06), 0 8px 24px rgba(27,33,29,0.08)',
       },
+      keyframes: {
+        // A continuous 360° turntable spin around the vertical axis — used
+        // by the decorative homepage phone showcase (AnimatedPhoneShowcase),
+        // never on anything interactive.
+        spinY: {
+          '0%': { transform: 'rotateY(0deg)' },
+          '100%': { transform: 'rotateY(360deg)' },
+        },
+        floatY: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
+      },
+      animation: {
+        spinY: 'spinY 14s linear infinite',
+        floatY: 'floatY 4.5s ease-in-out infinite',
+      },
     },
   },
   plugins: [],

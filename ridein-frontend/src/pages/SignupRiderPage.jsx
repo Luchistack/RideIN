@@ -28,10 +28,11 @@ const emptyForm = {
 }
 
 export default function SignupRiderPage() {
-  const { signupRider } = useAuth()
+  const { signupRider, isEmailTaken } = useAuth()
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
   const [form, setForm] = useState(emptyForm)
+  const [error, setError] = useState('')
 
   function set(field) {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }))
@@ -41,12 +42,29 @@ export default function SignupRiderPage() {
     e?.preventDefault()
     setStep((s) => Math.min(STEPS.length, s + 1))
   }
+
+  // Catch a duplicate email right away, at step 1, instead of making
+  // someone fill out the whole multi-step application before finding out.
+  function handleAccountSubmit(e) {
+    e.preventDefault()
+    if (isEmailTaken(form.email)) {
+      setError('An account with this email already exists. Try logging in instead.')
+      return
+    }
+    setError('')
+    next()
+  }
   function back() {
     setStep((s) => Math.max(1, s - 1))
   }
 
   function handleGoogle(profile) {
+    if (isEmailTaken(profile.email)) {
+      setError('An account with this email already exists. Try logging in instead.')
+      return
+    }
     setForm((f) => ({ ...f, name: profile.name, email: profile.email, authMethod: 'google' }))
+    setError('')
     setStep(2)
   }
 
@@ -55,7 +73,12 @@ export default function SignupRiderPage() {
   }
 
   function finish() {
-    signupRider(form)
+    const result = signupRider(form)
+    if (!result.ok) {
+      setError(result.error)
+      setStep(1)
+      return
+    }
     navigate('/dashboard')
   }
 
@@ -65,7 +88,7 @@ export default function SignupRiderPage() {
 
       {step === 1 && (
         <>
-          <form onSubmit={next}>
+          <form onSubmit={handleAccountSubmit}>
             <FormField
               id="r-name"
               label="Full name"
@@ -83,6 +106,7 @@ export default function SignupRiderPage() {
               value={form.email}
               onChange={set('email')}
             />
+            {error && <p className="mb-4 text-[12.5px] font-semibold text-danger dark:text-danger-dark">{error}</p>}
             <button
               type="submit"
               className="w-full rounded-full bg-brand py-3 text-sm font-bold text-white hover:bg-brand-deep"

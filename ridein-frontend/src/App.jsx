@@ -7,7 +7,9 @@ import LoginPage from './pages/LoginPage.jsx'
 import SignupChoicePage from './pages/SignupChoicePage.jsx'
 import SignupPassengerPage from './pages/SignupPassengerPage.jsx'
 import SignupRiderPage from './pages/SignupRiderPage.jsx'
-import RiderDashboardPage from './pages/RiderDashboardPage.jsx'
+import DashboardPage from './pages/DashboardPage.jsx'
+import ProfilePage from './pages/ProfilePage.jsx'
+import SupportPage from './pages/SupportPage.jsx'
 
 export default function App() {
   return (
@@ -21,7 +23,9 @@ export default function App() {
             <Route path="/signup" element={<SignupChoicePage />} />
             <Route path="/signup/passenger" element={<SignupPassengerPage />} />
             <Route path="/signup/rider" element={<SignupRiderPage />} />
-            <Route path="/dashboard" element={<RiderDashboardPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/support" element={<SupportPage />} />
           </Routes>
         </main>
         <Footer />
