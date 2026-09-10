@@ -1,197 +1,193 @@
 import { createContext, useContext, useEffect, useState } from 'react'
+import { api, getAccessToken, getRefreshToken, setTokens, clearTokens } from '../lib/api.js'
 
-// There is no backend yet, so "accounts" are stored in the browser
-// (localStorage) rather than a real database. This is enough to demo the
-// full signup → login → dashboard flow end to end, but it is NOT real
-// auth: anyone can open devtools and edit these records, passwords aren't
-// collected or checked, and nothing here is shared between devices or
-// browsers. Replace this whole file with real API calls to your backend
-// (and drop the localStorage persistence) once one exists — every place
-// that calls useAuth() would keep working unchanged, since they only see
-// { user, signupPassenger, signupRider, login, logout, ... }.
-const USERS_KEY = 'ridein-users'
-const SESSION_KEY = 'ridein-session-id'
-
-// --- Admin, without a public signup page ---------------------------------
-// There is deliberately no "sign up as admin" option anywhere in the UI —
-// the login page is the same single "Log in" form everyone uses, and
-// nothing in the app hints that an admin role exists. To make the demo
-// usable, this file quietly seeds one demo admin account into the same
-// localStorage users list the first time the app loads, if one isn't
-// already there. Log in as the estate operator by typing this email on the
-// normal /login page — nothing about the login form or the navbar changes
-// for anyone else. Replace this with real backend-issued admin accounts
-// (created by whoever runs RideIN, never self-served) once there's a
-// backend — delete this seeding block at that point.
-const ADMIN_EMAIL = 'admin@ridein.app'
-const ADMIN_NAME = 'RideIN Admin'
+// This now talks to the real ridein-backend API (https://api.ridein.ng) via
+// src/lib/api.js instead of localStorage. The public useAuth() interface is
+// unchanged from the old mock version on purpose — every page that calls
+// useAuth() keeps working, with the small per-page edits noted in the repo
+// (password fields on Login/Signup, updatePhoto now takes a File).
+//
+// Known gaps vs. the old mock, because the live backend doesn't support
+// these yet (flagging clearly rather than silently faking them):
+//
+// 1. isEmailTaken() is now a stub that always returns false. There's no
+//    email-availability-check endpoint on the backend, so a duplicate email
+//    is now only caught when signupPassenger/signupRider is actually
+//    submitted (both signup pages already handle that failure by resetting
+//    to step 1, so this degrades gracefully — it just can't warn you at
+//    step 1 anymore before you fill out the rest of the form).
+//
+// 2. Rider signup fields guarantorName/guarantorPhone/guarantorAddress/
+//    bankName/accountNumber/address/faceVerified are collected by the UI
+//    but NOT stored by the backend — RiderSignupSerializer only persists
+//    email/password/name/phone/estate/vehicle_plate. They're still sent
+//    (harmless — DRF ignores unrecognized fields) but won't come back from
+//    the API, so RiderProfilePage will show "—" for those until the
+//    backend's RiderProfile model/serializer is extended to store them.
+//
+// 3. loginWithGoogleProfile() is now a stub that always fails. The backend
+//    has no Google-credential-exchange endpoint (only email+password
+//    signup/login) — Google sign-in needs a new backend endpoint before it
+//    can work for real.
+//
+// 4. listAllUsers() currently only returns PENDING riders, because that's
+//    the one list endpoint that exists (GET /auth/riders/pending/). There
+//    is no "list every rider and passenger" admin endpoint yet, so
+//    AdminDashboardPage's "All riders" / "All passengers" tables will be
+//    incomplete (approved riders and all passengers won't show) until a
+//    real admin listing endpoint is added on the backend.
 
 const AuthContext = createContext(null)
 
-function readUsers() {
-  try {
-    return JSON.parse(localStorage.getItem(USERS_KEY)) || []
-  } catch {
-    return []
+// The backend nests rider-only fields under user.rider_profile (estate,
+// vehicle_plate, verification_status) instead of flat top-level fields.
+// This flattens them back onto the user object under their old mock names
+// so existing pages (RiderDashboardPage, RiderProfilePage,
+// AdminDashboardPage, Navbar, ...) don't all need to learn the nested shape.
+function normalizeUser(apiUser) {
+  if (!apiUser) return null
+  const rp = apiUser.rider_profile
+  return {
+    ...apiUser,
+    plateNumber: rp?.vehicle_plate || '',
+    estate: rp?.estate || '',
+    status: rp?.verification_status || '',
   }
-}
-
-function writeUsers(users) {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users))
-}
-
-function makeId() {
-  return `u_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-}
-
-function ensureAdminSeeded() {
-  const users = readUsers()
-  if (users.some((u) => u.role === 'admin')) return
-  const admin = {
-    id: makeId(),
-    role: 'admin',
-    name: ADMIN_NAME,
-    email: ADMIN_EMAIL,
-    authMethod: 'email',
-    createdAt: new Date().toISOString(),
-  }
-  writeUsers([...users, admin])
 }
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [ready, setReady] = useState(false)
 
+  // On load, if there's a stored token, try to restore the session by
+  // fetching /auth/me/ — this replaces the old "look up session id in
+  // localStorage users list" restore.
   useEffect(() => {
-    ensureAdminSeeded()
-    const sessionId = localStorage.getItem(SESSION_KEY)
-    if (sessionId) {
-      const found = readUsers().find((u) => u.id === sessionId)
-      if (found) setUser(found)
+    let cancelled = false
+    async function restoreSession() {
+      if (!getAccessToken() && !getRefreshToken()) {
+        setReady(true)
+        return
+      }
+      try {
+        const me = await api.get('/auth/me/')
+        if (!cancelled) setUser(normalizeUser(me))
+      } catch {
+        clearTokens()
+      } finally {
+        if (!cancelled) setReady(true)
+      }
     }
-    setReady(true)
+    restoreSession()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  function persistSession(newUser) {
-    setUser(newUser)
-    localStorage.setItem(SESSION_KEY, newUser.id)
+  function applyAuthResult(data) {
+    setTokens({ access: data.access, refresh: data.refresh })
+    const normalized = normalizeUser(data.user)
+    setUser(normalized)
+    return normalized
   }
 
-  // An email must resolve to exactly one account. Without this check, the
-  // same email could be used to sign up as both a passenger and a rider,
-  // and login(email) — which only ever returns the FIRST matching user —
-  // would then silently log that person into whichever role was created
-  // first, regardless of which role they meant to use. Enforcing uniqueness
-  // at signup is what makes plain email lookup in login() safe.
-  function emailTaken(email) {
-    return readUsers().some((u) => u.email.toLowerCase() === email.toLowerCase())
+  // See gap #1 above.
+  function isEmailTaken() {
+    return false
   }
 
-  // Exposed so multi-step signup forms (the rider application in
-  // particular) can catch a duplicate email right at step 1 instead of
-  // making someone fill out the whole form before finding out.
-  function isEmailTaken(email) {
-    return emailTaken(email)
-  }
-
-  function signupPassenger(data) {
-    if (emailTaken(data.email)) {
-      return { ok: false, error: 'An account with this email already exists. Try logging in instead.' }
+  async function signupPassenger(data) {
+    try {
+      const result = await api.post('/auth/signup/passenger/', {
+        email: data.email,
+        password: data.password,
+        name: data.name,
+        phone: data.phone || '',
+      })
+      return { ok: true, user: applyAuthResult(result) }
+    } catch (err) {
+      return { ok: false, error: err.message }
     }
-    const newUser = {
-      id: makeId(),
-      role: 'passenger',
-      name: data.name,
-      email: data.email,
-      authMethod: data.authMethod || 'email',
-      photo: null, // set later from the passenger's own profile page
-      createdAt: new Date().toISOString(),
-    }
-    const users = readUsers()
-    writeUsers([...users, newUser])
-    persistSession(newUser)
-    return { ok: true, user: newUser }
   }
 
-  function signupRider(data) {
-    if (emailTaken(data.email)) {
-      return { ok: false, error: 'An account with this email already exists. Try logging in instead.' }
+  async function signupRider(data) {
+    try {
+      const result = await api.post('/auth/signup/rider/', {
+        email: data.email,
+        password: data.password,
+        name: data.name,
+        phone: data.phone || '',
+        estate: data.estate || '',
+        vehicle_plate: data.plateNumber || '',
+      })
+      return { ok: true, user: applyAuthResult(result) }
+    } catch (err) {
+      return { ok: false, error: err.message }
     }
-    const newUser = {
-      id: makeId(),
-      role: 'rider',
-      name: data.name,
-      email: data.email,
-      authMethod: data.authMethod || 'email',
-      plateNumber: data.plateNumber,
-      estate: data.estate,
-      address: data.address,
-      phone: data.phone,
-      guarantorName: data.guarantorName,
-      guarantorPhone: data.guarantorPhone,
-      guarantorAddress: data.guarantorAddress,
-      bankName: data.bankName,
-      accountNumber: data.accountNumber,
-      faceVerified: Boolean(data.faceVerified),
-      status: 'pending_review', // a real backend would flip this once staff verify the details
-      photo: null, // set later from the rider's own profile page
-      createdAt: new Date().toISOString(),
-    }
-    const users = readUsers()
-    writeUsers([...users, newUser])
-    persistSession(newUser)
-    return { ok: true, user: newUser }
   }
 
-  function login(email) {
-    const found = readUsers().find((u) => u.email.toLowerCase() === email.toLowerCase())
-    if (!found) return { ok: false, error: 'No account found with that email. Try signing up instead.' }
-    persistSession(found)
-    return { ok: true, user: found }
-  }
-
-  function loginWithGoogleProfile(profile) {
-    const users = readUsers()
-    const existing = users.find((u) => u.email.toLowerCase() === profile.email.toLowerCase())
-    if (existing) {
-      persistSession(existing)
-      return { ok: true, user: existing, isNew: false }
+  async function login(email, password) {
+    try {
+      const result = await api.post('/auth/login/', { email, password }, { auth: false })
+      return { ok: true, user: applyAuthResult(result) }
+    } catch (err) {
+      return { ok: false, error: err.message }
     }
-    return { ok: false, isNew: true }
   }
 
-  function logout() {
+  // See gap #3 above.
+  function loginWithGoogleProfile() {
+    return {
+      ok: false,
+      isNew: false,
+      error: "Google sign-in isn't connected to the live backend yet — please use email + password.",
+    }
+  }
+
+  async function logout() {
+    const refresh = getRefreshToken()
+    try {
+      if (refresh) await api.post('/auth/logout/', { refresh })
+    } catch {
+      // Even if blacklisting server-side fails (e.g. token already expired
+      // or already blacklisted), still clear local state below so the user
+      // ends up logged out client-side either way.
+    }
+    clearTokens()
     setUser(null)
-    localStorage.removeItem(SESSION_KEY)
   }
 
-  // The ONLY field a rider or passenger can ever change about their own
-  // account from their profile page — everything else they filled in at
-  // signup (name, email, address, plate number, guarantor details, bank
-  // details, etc.) is locked, by design. If those details are wrong, that's
-  // a support/estate-management conversation, not a self-service edit.
-  function updatePhoto(dataUrl) {
-    if (!user) return
-    const users = readUsers().map((u) => (u.id === user.id ? { ...u, photo: dataUrl } : u))
-    writeUsers(users)
-    const updated = users.find((u) => u.id === user.id)
-    setUser(updated)
+  // Takes a real File now, not a base64 data URL — PassengerProfilePage and
+  // RiderProfilePage pass the File straight from <input type="file">
+  // onChange, since the backend's photo field is a real multipart upload
+  // (an ImageField), not a JSON string.
+  async function updatePhoto(file) {
+    if (!file || !user) return
+    const formData = new FormData()
+    formData.append('photo', file)
+    await api.patch('/auth/me/photo/', formData, { isFormData: true })
+    // /auth/me/photo/ only returns the photo field, so refetch the full
+    // profile rather than hand-merging a partial response.
+    const me = await api.get('/auth/me/')
+    setUser(normalizeUser(me))
   }
 
-  // Admin-only: flips a rider's account out of "pending review" once
-  // estate management has confirmed their details. There is no reject/
-  // delete here on purpose — this demo only models the one action an
-  // operator actually needs day to day.
-  function approveRider(riderId) {
-    const users = readUsers().map((u) => (u.id === riderId && u.role === 'rider' ? { ...u, status: 'approved' } : u))
-    writeUsers(users)
+  // Admin-only. verification_status is updated for real now — see gap #4
+  // above for the caveat on the list this reads from.
+  async function approveRider(riderId) {
+    await api.post(`/auth/riders/${riderId}/approve/`, { verification_status: 'approved' })
   }
 
-  // Admin-only: a read view of every account, for the admin dashboard.
-  // A real backend would paginate/filter this server-side and never send
-  // the full list to the client.
-  function listAllUsers() {
-    return readUsers()
+  // See gap #4 above: currently pending-riders-only, since that's the one
+  // admin list endpoint that exists on the backend today.
+  async function listAllUsers() {
+    try {
+      const pending = await api.get('/auth/riders/pending/')
+      const results = Array.isArray(pending) ? pending : pending?.results || []
+      return results.map(normalizeUser)
+    } catch {
+      return []
+    }
   }
 
   return (

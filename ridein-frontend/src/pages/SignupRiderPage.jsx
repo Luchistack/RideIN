@@ -14,6 +14,7 @@ const BANKS = ['Access Bank', 'GTBank', 'Zenith Bank', 'First Bank', 'UBA', 'Opa
 const emptyForm = {
   name: '',
   email: '',
+  password: '',
   authMethod: 'email',
   plateNumber: '',
   estate: ESTATES[0]?.name || 'Millennium Estate',
@@ -33,6 +34,7 @@ export default function SignupRiderPage() {
   const [step, setStep] = useState(1)
   const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   function set(field) {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }))
@@ -45,6 +47,10 @@ export default function SignupRiderPage() {
 
   // Catch a duplicate email right away, at step 1, instead of making
   // someone fill out the whole multi-step application before finding out.
+  // NOTE: the live backend has no email-availability-check endpoint, so
+  // isEmailTaken() currently always returns false — a real duplicate email
+  // is now only caught when the application is actually submitted at the
+  // end (finish() below resets to step 1 and shows the server's error).
   function handleAccountSubmit(e) {
     e.preventDefault()
     if (isEmailTaken(form.email)) {
@@ -72,8 +78,10 @@ export default function SignupRiderPage() {
     setForm((f) => ({ ...f, faceVerified: value }))
   }
 
-  function finish() {
-    const result = signupRider(form)
+  async function finish() {
+    setSubmitting(true)
+    const result = await signupRider(form)
+    setSubmitting(false)
     if (!result.ok) {
       setError(result.error)
       setStep(1)
@@ -105,6 +113,16 @@ export default function SignupRiderPage() {
               placeholder="you@example.com"
               value={form.email}
               onChange={set('email')}
+            />
+            <FormField
+              id="r-password"
+              label="Password"
+              type="password"
+              required
+              minLength={8}
+              placeholder="At least 8 characters"
+              value={form.password}
+              onChange={set('password')}
             />
             {error && <p className="mb-4 text-[12.5px] font-semibold text-danger dark:text-danger-dark">{error}</p>}
             <button
@@ -200,11 +218,11 @@ export default function SignupRiderPage() {
             </button>
             <button
               type="button"
-              disabled={!form.faceVerified}
+              disabled={!form.faceVerified || submitting}
               onClick={finish}
               className="flex-1 rounded-full bg-brand py-3 text-sm font-bold text-white hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Submit application
+              {submitting ? 'Submitting…' : 'Submit application'}
             </button>
           </div>
           <p className="mt-4 text-center text-[11.5px] text-ink-faint dark:text-ink-faint-dark">

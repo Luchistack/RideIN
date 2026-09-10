@@ -3,7 +3,7 @@ import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import Avatar from '../components/ui/Avatar.jsx'
 
-const MAX_PHOTO_BYTES = 3 * 1024 * 1024 // 3MB — generous for a demo, keeps localStorage usable
+const MAX_PHOTO_BYTES = 3 * 1024 * 1024 // 3MB
 
 function ReadOnlyField({ label, value }) {
   return (
@@ -30,7 +30,7 @@ export default function RiderProfilePage() {
     return <Navigate to="/login" replace />
   }
 
-  function handleFile(e) {
+  async function handleFile(e) {
     const file = e.target.files?.[0]
     e.target.value = '' // let the same file be picked again later if needed
     if (!file) return
@@ -45,19 +45,23 @@ export default function RiderProfilePage() {
       return
     }
 
+    // The backend's photo field is a real multipart upload (an
+    // ImageField), so the File goes straight to updatePhoto() — no more
+    // reading it into a base64 data URL first.
     setBusy(true)
-    const reader = new FileReader()
-    reader.onload = () => {
-      updatePhoto(reader.result)
+    try {
+      await updatePhoto(file)
+    } catch (err) {
+      setError(err.message || 'Could not upload that photo — please try another image.')
+    } finally {
       setBusy(false)
     }
-    reader.onerror = () => {
-      setError('Could not read that file — please try another image.')
-      setBusy(false)
-    }
-    reader.readAsDataURL(file)
   }
 
+  // NOTE: guarantorName/guarantorPhone/guarantorAddress/bankName/
+  // accountNumber/address aren't stored by the backend yet (see the gaps
+  // note at the top of AuthContext.jsx) — they'll show "—" below until the
+  // backend's RiderProfile model/serializer is extended to persist them.
   const maskedAccount = user.accountNumber
     ? `••••••${user.accountNumber.slice(-4)}`
     : '—'

@@ -16,25 +16,33 @@ function StatCard({ label, value }) {
 }
 
 // The admin dashboard — reachable only through the same "/login" page
-// everyone else uses (see the note at the top of AuthContext.jsx for how
-// the one demo admin account gets there). Nothing about the navbar or the
-// login form changes for anyone else; a rider or passenger has no way to
-// discover this page exists, let alone open it — DashboardPage only ever
-// renders it for a user whose role is actually 'admin'.
+// everyone else uses. DashboardPage only ever renders it for a user whose
+// role is actually 'admin' (checked server-side too, via IsAdmin on every
+// admin endpoint this page calls).
+//
+// KNOWN GAP: listAllUsers() (see AuthContext.jsx) currently only returns
+// PENDING riders — the live backend has no "list every rider and
+// passenger" admin endpoint yet, only GET /auth/riders/pending/. So "All
+// riders" below will only show riders still awaiting review, and "All
+// passengers" will always be empty, until that endpoint is added.
 export default function AdminDashboardPage() {
   const { user, logout, listAllUsers, approveRider } = useAuth()
   const [users, setUsers] = useState([])
   const [threads, setThreads] = useState([])
   const [openThreadId, setOpenThreadId] = useState(null)
   const [reply, setReply] = useState('')
+  const [loading, setLoading] = useState(true)
 
   if (!user || user.role !== 'admin') {
     return <Navigate to="/login" replace />
   }
 
-  function refresh() {
-    setUsers(listAllUsers())
+  async function refresh() {
+    setLoading(true)
+    const [allUsers] = await Promise.all([listAllUsers()])
+    setUsers(allUsers)
     setThreads(getAllThreads())
+    setLoading(false)
   }
 
   useEffect(() => {
@@ -47,8 +55,8 @@ export default function AdminDashboardPage() {
   const pendingRiders = riders.filter((r) => r.status === 'pending_review')
   const openThread = threads.find((t) => t.userId === openThreadId) || null
 
-  function handleApprove(riderId) {
-    approveRider(riderId)
+  async function handleApprove(riderId) {
+    await approveRider(riderId)
     refresh()
   }
 
@@ -90,6 +98,10 @@ export default function AdminDashboardPage() {
         <StatCard label="Passengers" value={passengers.length} />
         <StatCard label="Support threads" value={threads.length} />
       </div>
+
+      {loading && (
+        <p className="mb-6 text-[13px] text-ink-faint dark:text-ink-faint-dark">Loading…</p>
+      )}
 
       {pendingRiders.length > 0 && (
         <section className="mb-10">
@@ -136,6 +148,9 @@ export default function AdminDashboardPage() {
 
       <section className="mb-10">
         <h2 className="mb-3 text-lg font-bold normal-case">All riders</h2>
+        <p className="mb-3 text-[12px] text-ink-faint dark:text-ink-faint-dark">
+          Currently shows pending riders only — the backend doesn't have a "list every rider" endpoint yet.
+        </p>
         <div className="overflow-x-auto rounded-2xl border border-line dark:border-line-dark">
           <table className="w-full min-w-[560px] border-collapse text-left text-[13.5px]">
             <thead>
@@ -184,6 +199,9 @@ export default function AdminDashboardPage() {
 
       <section className="mb-10">
         <h2 className="mb-3 text-lg font-bold normal-case">All passengers</h2>
+        <p className="mb-3 text-[12px] text-ink-faint dark:text-ink-faint-dark">
+          Not available yet — the backend has no endpoint to list passengers.
+        </p>
         <div className="overflow-x-auto rounded-2xl border border-line dark:border-line-dark">
           <table className="w-full min-w-[420px] border-collapse text-left text-[13.5px]">
             <thead>

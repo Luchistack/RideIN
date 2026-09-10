@@ -13,8 +13,9 @@ export default function SignupPassengerPage() {
   const navigate = useNavigate()
 
   const [step, setStep] = useState(1)
-  const [account, setAccount] = useState({ name: '', email: '', authMethod: 'email' })
+  const [account, setAccount] = useState({ name: '', email: '', password: '', authMethod: 'email' })
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   function handleAccountSubmit(e) {
     e.preventDefault()
@@ -31,13 +32,15 @@ export default function SignupPassengerPage() {
       setError('An account with this email already exists. Try logging in instead.')
       return
     }
-    setAccount({ name: profile.name, email: profile.email, authMethod: 'google' })
+    setAccount((a) => ({ ...a, name: profile.name, email: profile.email, authMethod: 'google' }))
     setError('')
     setStep(2)
   }
 
-  function finish() {
-    const result = signupPassenger(account)
+  async function finish() {
+    setSubmitting(true)
+    const result = await signupPassenger(account)
+    setSubmitting(false)
     if (!result.ok) {
       setError(result.error)
       setStep(1)
@@ -70,6 +73,16 @@ export default function SignupPassengerPage() {
               value={account.email}
               onChange={(e) => setAccount((a) => ({ ...a, email: e.target.value, authMethod: 'email' }))}
             />
+            <FormField
+              id="p-password"
+              label="Password"
+              type="password"
+              required
+              minLength={8}
+              placeholder="At least 8 characters"
+              value={account.password}
+              onChange={(e) => setAccount((a) => ({ ...a, password: e.target.value }))}
+            />
             {error && <p className="mb-4 text-[12.5px] font-semibold text-danger dark:text-danger-dark">{error}</p>}
             <button
               type="submit"
@@ -98,17 +111,15 @@ export default function SignupPassengerPage() {
           <div className="mb-5 rounded-xl border border-line bg-paper p-4 text-[12.5px] dark:border-line-dark dark:bg-paper-dark">
             <p className="mb-1 font-semibold">RideIN's transfer details (shown again after every ride):</p>
             <p className="font-mono text-ink-soft dark:text-ink-soft-dark">RideIN Ltd · 0123456789 · Demo Bank</p>
-            <p className="mt-1.5 text-ink-faint dark:text-ink-faint-dark">
-              Demo only — no real transfer is needed to continue.
-            </p>
           </div>
           {error && <p className="mb-4 text-[12.5px] font-semibold text-danger dark:text-danger-dark">{error}</p>}
           <button
             type="button"
             onClick={finish}
-            className="w-full rounded-full bg-brand py-3 text-sm font-bold text-white hover:bg-brand-deep"
+            disabled={submitting}
+            className="w-full rounded-full bg-brand py-3 text-sm font-bold text-white hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Got it — finish
+            {submitting ? 'Creating your account…' : "Got it — finish"}
           </button>
         </div>
       )}

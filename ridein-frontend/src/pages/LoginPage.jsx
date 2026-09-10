@@ -9,11 +9,16 @@ export default function LoginPage() {
   const { login, loginWithGoogleProfile } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
-    const result = login(email)
+    setError('')
+    setSubmitting(true)
+    const result = await login(email, password)
+    setSubmitting(false)
     if (!result.ok) {
       setError(result.error)
       return
@@ -27,7 +32,7 @@ export default function LoginPage() {
       navigate(result.user.role === 'passenger' ? '/#app' : '/dashboard')
       return
     }
-    setError("We don't have an account for that Google email yet — sign up first.")
+    setError(result.error || "We don't have an account for that Google email yet — sign up first.")
   }
 
   return (
@@ -42,12 +47,22 @@ export default function LoginPage() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
+        <FormField
+          id="login-password"
+          label="Password"
+          type="password"
+          required
+          placeholder="••••••••"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
         {error && <p className="mb-4 text-[12.5px] font-semibold text-danger dark:text-danger-dark">{error}</p>}
         <button
           type="submit"
-          className="w-full rounded-full bg-brand py-3 text-sm font-bold text-white hover:bg-brand-deep"
+          disabled={submitting}
+          className="w-full rounded-full bg-brand py-3 text-sm font-bold text-white hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Continue
+          {submitting ? 'Logging in…' : 'Continue'}
         </button>
       </form>
 
@@ -66,10 +81,6 @@ export default function LoginPage() {
         <Link to="/signup" className="font-semibold text-brand dark:text-brand-light">
           Sign up
         </Link>
-      </p>
-      <p className="mt-3 text-center text-[11px] text-ink-faint dark:text-ink-faint-dark">
-        Demo note: there's no password, and no real backend — this looks up accounts you've created on this
-        browser via Sign up.
       </p>
     </AuthLayout>
   )
