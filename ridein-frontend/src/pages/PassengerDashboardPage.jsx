@@ -162,21 +162,22 @@ export default function PassengerDashboardPage() {
               <tr className="border-b border-line bg-surface-2 dark:border-line-dark dark:bg-surface-2-dark">
                 <Th>Date</Th>
                 <Th>Rider</Th>
-                <Th>Status</Th>
-                <Th align="right">Amount</Th>
+                <Th>Payment status</Th>
+                <Th align="right">Fare</Th>
+                <Th align="right">Tip</Th>
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr>
-                  <Td colSpan={4} className="text-center text-ink-faint dark:text-ink-faint-dark">
+                  <Td colSpan={5} className="text-center text-ink-faint dark:text-ink-faint-dark">
                     Loading…
                   </Td>
                 </tr>
               )}
               {!loading && paymentHistory.length === 0 && (
                 <tr>
-                  <Td colSpan={4} className="text-center text-ink-faint dark:text-ink-faint-dark">
+                  <Td colSpan={5} className="text-center text-ink-faint dark:text-ink-faint-dark">
                     No payments yet.
                   </Td>
                 </tr>
@@ -192,6 +193,9 @@ export default function PassengerDashboardPage() {
                   </Td>
                   <Td align="right" className="font-mono">
                     {entry.amount != null ? formatNaira(entry.amount) : '—'}
+                  </Td>
+                  <Td align="right" className="font-mono">
+                    {entry.tipAmount ? formatNaira(entry.tipAmount) : '—'}
                   </Td>
                 </tr>
               ))}

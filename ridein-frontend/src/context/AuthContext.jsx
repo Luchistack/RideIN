@@ -89,9 +89,13 @@ function normalizeRide(apiRide) {
     pickupLat: apiRide.pickup_lat != null ? Number(apiRide.pickup_lat) : null,
     pickupLng: apiRide.pickup_lng != null ? Number(apiRide.pickup_lng) : null,
     pickupAddress: apiRide.pickup_address || '',
+    rideType: apiRide.ride_type || 'pickup',
     fare: apiRide.fare != null ? Number(apiRide.fare) : null,
     tipAmount: apiRide.tip_amount != null ? Number(apiRide.tip_amount) : 0,
     rating: apiRide.rating ?? null,
+    passengerComment: apiRide.passenger_comment || '',
+    riderRating: apiRide.rider_rating ?? null,
+    riderComment: apiRide.rider_comment || '',
     requestedAt: apiRide.requested_at,
     acceptedAt: apiRide.accepted_at,
     completedAt: apiRide.completed_at,
@@ -382,12 +386,15 @@ export function AuthProvider({ children }) {
 
   // pickup: {lat, lng, address}. requestedRiderId is optional -- pass a
   // specific rider's id (from listNearbyRiders()) to request them by name,
-  // or omit it to broadcast to every approved rider nearby.
-  async function requestRide({ pickupLat, pickupLng, pickupAddress, requestedRiderId } = {}) {
+  // or omit it to broadcast to every approved rider nearby. rideType is
+  // 'pickup' (default, shared/₦400) or 'chatter' (private/₦1500) -- the
+  // server looks up the matching flat fare, it's never sent from here.
+  async function requestRide({ pickupLat, pickupLng, pickupAddress, requestedRiderId, rideType } = {}) {
     const body = {
       pickup_lat: pickupLat,
       pickup_lng: pickupLng,
       pickup_address: pickupAddress || '',
+      ride_type: rideType || 'pickup',
     }
     if (requestedRiderId) body.requested_rider_id = requestedRiderId
     const data = await api.post('/rides/request/', body)
@@ -422,11 +429,21 @@ export function AuthProvider({ children }) {
     return normalizeRide(data)
   }
 
-  async function completeRide(rideId, { rating, tipAmount } = {}) {
+  async function completeRide(rideId, { rating, tipAmount, comment } = {}) {
     const body = {}
     if (rating != null) body.rating = rating
     if (tipAmount != null) body.tip_amount = tipAmount
+    if (comment) body.comment = comment
     const data = await api.post(`/rides/${rideId}/complete/`, body)
+    return normalizeRide(data)
+  }
+
+  // Rider only, and only once the ride is completed -- the mirror of the
+  // rating the passenger leaves via completeRide(). One rating per ride.
+  async function ratePassenger(rideId, { rating, comment } = {}) {
+    const body = { rating }
+    if (comment) body.comment = comment
+    const data = await api.post(`/rides/${rideId}/rate-passenger/`, body)
     return normalizeRide(data)
   }
 
@@ -461,6 +478,7 @@ export function AuthProvider({ children }) {
       id: apiPayment.id,
       ride: typeof apiPayment.ride === 'object' ? normalizeRide(apiPayment.ride) : apiPayment.ride,
       amount: apiPayment.amount != null ? Number(apiPayment.amount) : null,
+      tipAmount: apiPayment.tip_amount != null ? Number(apiPayment.tip_amount) : 0,
       bankReference: apiPayment.bank_reference || '',
       status: apiPayment.status,
       submittedAt: apiPayment.submitted_at,
@@ -469,9 +487,13 @@ export function AuthProvider({ children }) {
   }
 
   // Passenger only: a single "I've paid" tap for one of their own rides.
-  // bankReference is optional -- nothing requires typing anything.
-  async function submitPayment(rideId, bankReference) {
+  // amount defaults to the ride's fare and tipAmount to 0 server-side if
+  // left out -- but the passenger can type in exactly what they sent (fare
+  // + any transfer tip), and bankReference is optional on top of that.
+  async function submitPayment(rideId, { amount, tipAmount, bankReference } = {}) {
     const body = { ride: rideId }
+    if (amount != null && amount !== '') body.amount = amount
+    if (tipAmount != null && tipAmount !== '') body.tip_amount = tipAmount
     if (bankReference) body.bank_reference = bankReference
     const data = await api.post('/payments/submit/', body)
     return normalizePayment(data)
@@ -528,6 +550,7 @@ export function AuthProvider({ children }) {
         acceptRide,
         cancelRide,
         completeRide,
+        ratePassenger,
         upsertMyLocation,
         listNearbyRiders,
         getPassengerLocation,

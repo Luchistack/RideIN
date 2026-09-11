@@ -710,20 +710,21 @@ function PaymentsTab() {
               <Th>Rider</Th>
               <Th>Reference</Th>
               <Th align="right">Amount</Th>
-              <Th>Set status</Th>
+              <Th align="right">Tip</Th>
+              <Th>Payment status</Th>
             </tr>
           </thead>
           <tbody>
             {loading && (
               <tr>
-                <Td colSpan={6} className="text-center text-ink-faint dark:text-ink-faint-dark">
+                <Td colSpan={7} className="text-center text-ink-faint dark:text-ink-faint-dark">
                   Loading…
                 </Td>
               </tr>
             )}
             {!loading && payments.length === 0 && (
               <tr>
-                <Td colSpan={6} className="text-center text-ink-faint dark:text-ink-faint-dark">
+                <Td colSpan={7} className="text-center text-ink-faint dark:text-ink-faint-dark">
                   No payments match.
                 </Td>
               </tr>
@@ -740,6 +741,9 @@ function PaymentsTab() {
                 </Td>
                 <Td align="right" className="font-mono">
                   {payment.amount != null ? formatNaira(payment.amount) : '—'}
+                </Td>
+                <Td align="right" className="font-mono">
+                  {payment.tipAmount ? formatNaira(payment.tipAmount) : '—'}
                 </Td>
                 <Td>
                   <PaymentStatusButtons payment={payment} onSetStatus={handleSetStatus} />

@@ -3,7 +3,7 @@ import { Navigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { MILLENNIUM_ESTATE } from '../data/estate.js'
 import { haversineMeters, formatDistance, formatEta } from '../lib/distance.js'
-import { formatNaira } from '../data/fares.js'
+import { FARES, formatNaira } from '../data/fares.js'
 import Avatar from '../components/ui/Avatar.jsx'
 
 const POLL_MS = 5000
@@ -19,11 +19,15 @@ const PAYMENT_ACCOUNT = { bank: 'PalmPay', name: 'Dike Faith', number: '70738818
 
 function PaymentBox({ ride, payment, onSubmit, submitting, error }) {
   const [reference, setReference] = useState('')
+  const [amount, setAmount] = useState(ride.fare != null ? String(ride.fare) : '')
+  const [tip, setTip] = useState('')
 
   if (payment && payment.status === 'confirmed') {
     return (
       <div className="mb-4 rounded-xl border border-good/30 bg-good/10 px-3.5 py-3 text-[12.5px] font-semibold text-good dark:border-good-dark/30 dark:bg-good-dark/10 dark:text-good-dark">
-        ✓ Payment confirmed by an admin.
+        ✓ Payment confirmed by an admin
+        {payment.amount != null && ` — ${formatNaira(payment.amount)}`}
+        {payment.tipAmount ? ` + ${formatNaira(payment.tipAmount)} tip` : ''}.
       </div>
     )
   }
@@ -31,7 +35,11 @@ function PaymentBox({ ride, payment, onSubmit, submitting, error }) {
   if (payment && payment.status === 'pending') {
     return (
       <div className="mb-4 rounded-xl border border-accent/30 bg-accent-tint px-3.5 py-3 text-[12.5px] text-accent-deep dark:border-accent/20 dark:bg-accent-tint-dark dark:text-accent-light">
-        <b>Payment submitted</b> — an admin will confirm it shortly. Show your rider the receipt before you leave.
+        <b>
+          Payment submitted{payment.amount != null && ` — ${formatNaira(payment.amount)}`}
+          {payment.tipAmount ? ` + ${formatNaira(payment.tipAmount)} tip` : ''}.
+        </b>{' '}
+        An admin will confirm it shortly. Show your rider the receipt before you leave.
       </div>
     )
   }
@@ -51,6 +59,36 @@ function PaymentBox({ ride, payment, onSubmit, submitting, error }) {
         {PAYMENT_ACCOUNT.bank} · {PAYMENT_ACCOUNT.name} · {PAYMENT_ACCOUNT.number}
         {ride.fare != null && <span className="ml-2 font-bold text-brand dark:text-brand-light">{formatNaira(ride.fare)}</span>}
       </div>
+      <div className="mb-2.5 grid grid-cols-2 gap-2">
+        <div>
+          <label className="mb-1 block text-[11.5px] font-semibold text-ink-soft dark:text-ink-soft-dark">
+            Amount you sent
+          </label>
+          <input
+            type="number"
+            inputMode="decimal"
+            min="0"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder={ride.fare != null ? String(ride.fare) : '0'}
+            className="w-full rounded-[9px] border border-line bg-paper px-3.5 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-brand dark:border-line-dark dark:bg-paper-dark dark:text-ink-dark"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-[11.5px] font-semibold text-ink-soft dark:text-ink-soft-dark">
+            Tip by transfer (optional)
+          </label>
+          <input
+            type="number"
+            inputMode="decimal"
+            min="0"
+            value={tip}
+            onChange={(e) => setTip(e.target.value)}
+            placeholder="0"
+            className="w-full rounded-[9px] border border-line bg-paper px-3.5 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-brand dark:border-line-dark dark:bg-paper-dark dark:text-ink-dark"
+          />
+        </div>
+      </div>
       <input
         value={reference}
         onChange={(e) => setReference(e.target.value)}
@@ -61,7 +99,7 @@ function PaymentBox({ ride, payment, onSubmit, submitting, error }) {
       <button
         type="button"
         disabled={submitting}
-        onClick={() => onSubmit(reference)}
+        onClick={() => onSubmit({ reference, amount, tip })}
         className="w-full rounded-full bg-brand py-2.5 text-[13px] font-bold text-white hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
       >
         {submitting ? 'Submitting…' : "I've paid"}
@@ -136,6 +174,8 @@ export default function BookRidePage() {
     listMyPayments,
   } = useAuth()
 
+  const [rideType, setRideType] = useState('pickup')
+
   const [loadingInitial, setLoadingInitial] = useState(true)
   const [activeRide, setActiveRide] = useState(null)
   const [payment, setPayment] = useState(null)
@@ -158,6 +198,7 @@ export default function BookRidePage() {
   const [ratingOpen, setRatingOpen] = useState(false)
   const [stars, setStars] = useState(0)
   const [tip, setTip] = useState(0)
+  const [comment, setComment] = useState('')
   const [completing, setCompleting] = useState(false)
   const [cancelling, setCancelling] = useState(false)
 
@@ -304,6 +345,7 @@ export default function BookRidePage() {
         pickupLng: lng,
         pickupAddress: pickupAddressText(),
         requestedRiderId: requestedRiderId || undefined,
+        rideType,
       })
       setActiveRide(ride)
     } catch (err) {
@@ -336,6 +378,7 @@ export default function BookRidePage() {
       const ride = await completeRide(activeRide.id, {
         rating: stars || undefined,
         tipAmount: tip || undefined,
+        comment: comment.trim() || undefined,
       })
       setActiveRide(ride)
       setRatingOpen(false)
@@ -346,12 +389,16 @@ export default function BookRidePage() {
     }
   }
 
-  async function handlePaySubmit(reference) {
+  async function handlePaySubmit({ reference, amount, tip: transferTip }) {
     if (!activeRide || paymentSubmitting) return
     setPaymentSubmitting(true)
     setPaymentError('')
     try {
-      const created = await submitPayment(activeRide.id, reference)
+      const created = await submitPayment(activeRide.id, {
+        bankReference: reference,
+        amount: amount || undefined,
+        tipAmount: transferTip || undefined,
+      })
       setPayment(created)
     } catch (err) {
       setPaymentError(err.message || 'Could not submit that — please try again.')
@@ -369,6 +416,8 @@ export default function BookRidePage() {
     setRatingOpen(false)
     setStars(0)
     setTip(0)
+    setComment('')
+    setRideType('pickup')
   }
 
   const sortedRiders = liveCoords
@@ -405,6 +454,8 @@ export default function BookRidePage() {
           setStars={setStars}
           tip={tip}
           setTip={setTip}
+          comment={comment}
+          setComment={setComment}
           onComplete={handleComplete}
           completing={completing}
           onBookAnother={bookAnother}
@@ -416,6 +467,37 @@ export default function BookRidePage() {
       ) : (
         <div className="rounded-[30px] border-2 border-line bg-gradient-to-b from-surface to-surface-2 p-4 shadow-[0_30px_70px_-25px_rgba(0,0,0,0.45)] dark:border-line-dark dark:from-surface-dark dark:to-surface-2-dark dark:shadow-[0_30px_70px_-25px_rgba(0,0,0,0.75)]">
           <div className="rounded-[22px] bg-paper p-5 dark:bg-paper-dark">
+            <div className="mb-4">
+              <div className="mb-2 text-[12.5px] font-bold normal-case">What kind of ride?</div>
+              <div className="grid grid-cols-2 gap-3">
+                {Object.values(FARES).map((f) => (
+                  <button
+                    key={f.key}
+                    type="button"
+                    onClick={() => setRideType(f.key)}
+                    className={`rounded-2xl border p-3.5 text-left transition-transform hover:-translate-y-0.5 ${
+                      rideType === f.key
+                        ? 'border-brand bg-brand-tint dark:border-brand-light dark:bg-brand-tint-dark'
+                        : 'border-line bg-surface dark:border-line-dark dark:bg-surface-dark'
+                    }`}
+                  >
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="text-[13.5px] font-bold">{f.label}</span>
+                      <span className="font-mono text-[13px] font-bold text-brand dark:text-brand-light">
+                        {formatNaira(f.total)}
+                      </span>
+                    </div>
+                    <div className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-accent-deep dark:text-accent-light">
+                      {f.badge}
+                    </div>
+                    <p className="text-[11.5px] leading-snug text-ink-faint dark:text-ink-faint-dark">
+                      {f.description}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="mb-4 flex gap-1.5 rounded-[10px] bg-surface-2 p-1 dark:bg-surface-2-dark">
               <button
                 type="button"
@@ -566,6 +648,8 @@ function ActiveRideCard({
   setStars,
   tip,
   setTip,
+  comment,
+  setComment,
   onComplete,
   completing,
   onBookAnother,
@@ -692,7 +776,7 @@ function ActiveRideCard({
               ))}
             </div>
             <p className="mb-1.5 text-center text-[11.5px] text-ink-faint dark:text-ink-faint-dark">
-              Cash tip? Fully optional.
+              Cash tip, handed to the rider directly? Fully optional.
             </p>
             <div className="mb-3 flex gap-2">
               {[0, 100, 200, 500].map((v) => (
@@ -710,6 +794,13 @@ function ActiveRideCard({
                 </button>
               ))}
             </div>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Leave a comment about the rider (optional)"
+              rows={2}
+              className="mb-3 w-full resize-none rounded-[9px] border border-line bg-paper px-3.5 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-brand dark:border-line-dark dark:bg-paper-dark dark:text-ink-dark"
+            />
             <button
               type="button"
               disabled={completing}

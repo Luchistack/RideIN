@@ -65,13 +65,93 @@ function PaymentStatusNote({ payment }) {
       </p>
     )
   }
+  const amountText =
+    payment.amount != null
+      ? ` — ${formatNaira(payment.amount)}${payment.tipAmount ? ` + ${formatNaira(payment.tipAmount)} tip` : ''}`
+      : ''
   const map = {
-    pending: ['Payment submitted — waiting on an admin to confirm it.', 'text-accent-deep dark:text-accent-light'],
-    confirmed: ['✓ Payment confirmed by an admin.', 'text-good dark:text-good-dark'],
+    pending: [`Payment submitted${amountText} — waiting on an admin to confirm it.`, 'text-accent-deep dark:text-accent-light'],
+    confirmed: [`✓ Payment confirmed by an admin${amountText}.`, 'text-good dark:text-good-dark'],
     failed: ['Payment marked as not paid — check with the passenger.', 'text-danger dark:text-danger-dark'],
   }
   const [text, cls] = map[payment.status] || [payment.status, '']
   return <p className={`mb-3 text-[12.5px] font-semibold ${cls}`}>{text}</p>
+}
+
+// Inline "rate the passenger" form for one completed ride the rider hasn't
+// rated yet -- mirrors the passenger's star+comment rating of the rider,
+// just the other direction. Collapsed to a single button until opened.
+function RatePassengerCell({ ride, onRated }) {
+  const { ratePassenger } = useAuth()
+  const [open, setOpen] = useState(false)
+  const [stars, setStars] = useState(0)
+  const [comment, setComment] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+
+  if (ride.riderRating != null) {
+    return <span className="text-[12.5px] font-semibold text-good dark:text-good-dark">★ {ride.riderRating} rated</span>
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="rounded-full border border-line px-3 py-1 text-[11.5px] font-bold hover:border-ink-faint dark:border-line-dark dark:hover:border-ink-faint-dark"
+      >
+        Rate passenger
+      </button>
+    )
+  }
+
+  async function submit() {
+    if (!stars || busy) return
+    setBusy(true)
+    setErr('')
+    try {
+      const updated = await ratePassenger(ride.id, { rating: stars, comment: comment.trim() || undefined })
+      onRated(updated)
+      setOpen(false)
+    } catch (e) {
+      setErr(e.message || 'Could not submit that rating.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="w-[220px] rounded-xl border border-line bg-surface p-2.5 dark:border-line-dark dark:bg-surface-dark">
+      <div className="mb-1.5 flex justify-center gap-1">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => setStars(n)}
+            className={`text-lg leading-none ${n <= stars ? 'text-accent' : 'text-line dark:text-line-dark'}`}
+          >
+            ★
+          </button>
+        ))}
+      </div>
+      <textarea
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        placeholder="Comment (optional)"
+        rows={2}
+        className="mb-1.5 w-full resize-none rounded-lg border border-line bg-paper px-2 py-1.5 text-[12px] text-ink outline-none focus:ring-2 focus:ring-brand dark:border-line-dark dark:bg-paper-dark dark:text-ink-dark"
+      />
+      {err && <p className="mb-1.5 text-[11px] font-semibold text-danger dark:text-danger-dark">{err}</p>}
+      <button
+        type="button"
+        disabled={!stars || busy}
+        onClick={submit}
+        className="w-full rounded-full bg-brand py-1.5 text-[11.5px] font-bold text-white hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {busy ? 'Submitting…' : 'Submit rating'}
+      </button>
+    </div>
+  )
 }
 
 function ActiveRideBanner({ ride, onCancel, cancelling, payment }) {
@@ -343,20 +423,21 @@ export default function RiderDashboardPage() {
                 <Th>Passenger</Th>
                 <Th>Pickup</Th>
                 <Th align="right">Fare</Th>
-                <Th align="right">Rating</Th>
+                <Th align="right">Their rating of you</Th>
+                <Th>Your rating of them</Th>
               </tr>
             </thead>
             <tbody>
               {historyLoading && (
                 <tr>
-                  <Td colSpan={5} className="text-center text-ink-faint dark:text-ink-faint-dark">
+                  <Td colSpan={6} className="text-center text-ink-faint dark:text-ink-faint-dark">
                     Loading…
                   </Td>
                 </tr>
               )}
               {!historyLoading && history.length === 0 && (
                 <tr>
-                  <Td colSpan={5} className="text-center text-ink-faint dark:text-ink-faint-dark">
+                  <Td colSpan={6} className="text-center text-ink-faint dark:text-ink-faint-dark">
                     No completed rides yet.
                   </Td>
                 </tr>
@@ -372,6 +453,14 @@ export default function RiderDashboardPage() {
                     {ride.fare != null ? formatNaira(ride.fare) : '—'}
                   </Td>
                   <Td align="right">{ride.rating ? `★ ${ride.rating}` : '—'}</Td>
+                  <Td>
+                    <RatePassengerCell
+                      ride={ride}
+                      onRated={(updated) =>
+                        setHistory((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
+                      }
+                    />
+                  </Td>
                 </tr>
               ))}
             </tbody>
@@ -390,21 +479,22 @@ export default function RiderDashboardPage() {
               <tr className="border-b border-line bg-surface-2 dark:border-line-dark dark:bg-surface-2-dark">
                 <Th>Date</Th>
                 <Th>Passenger</Th>
-                <Th>Status</Th>
-                <Th align="right">Amount</Th>
+                <Th>Payment status</Th>
+                <Th align="right">Fare</Th>
+                <Th align="right">Tip</Th>
               </tr>
             </thead>
             <tbody>
               {historyLoading && (
                 <tr>
-                  <Td colSpan={4} className="text-center text-ink-faint dark:text-ink-faint-dark">
+                  <Td colSpan={5} className="text-center text-ink-faint dark:text-ink-faint-dark">
                     Loading…
                   </Td>
                 </tr>
               )}
               {!historyLoading && paymentHistory.length === 0 && (
                 <tr>
-                  <Td colSpan={4} className="text-center text-ink-faint dark:text-ink-faint-dark">
+                  <Td colSpan={5} className="text-center text-ink-faint dark:text-ink-faint-dark">
                     No payments yet.
                   </Td>
                 </tr>
@@ -420,6 +510,9 @@ export default function RiderDashboardPage() {
                   </Td>
                   <Td align="right" className="font-mono">
                     {payment.amount != null ? formatNaira(payment.amount) : '—'}
+                  </Td>
+                  <Td align="right" className="font-mono">
+                    {payment.tipAmount ? formatNaira(payment.tipAmount) : '—'}
                   </Td>
                 </tr>
               ))}
