@@ -407,7 +407,7 @@ function RidersTab({ onStats }) {
                             onClick={() => runAction(r.id, () => setAccountStatus(r.id, 'active'))}
                             className={BTN_GHOST}
                           >
-                            Reactivate
+                            {r.accountStatus === 'blocked' ? 'Unblock' : 'Unsuspend'}
                           </button>
                         )}
                         <button
@@ -553,7 +553,7 @@ function PassengersTab({ onStats }) {
                             onClick={() => runAction(p.id, () => setAccountStatus(p.id, 'active'))}
                             className={BTN_GHOST}
                           >
-                            Reactivate
+                            {p.accountStatus === 'blocked' ? 'Unblock' : 'Unsuspend'}
                           </button>
                         )}
                         <button

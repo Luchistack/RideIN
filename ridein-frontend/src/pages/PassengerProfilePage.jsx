@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import Avatar from '../components/ui/Avatar.jsx'
+import ChangePasswordCard from '../components/account/ChangePasswordCard.jsx'
 
 const MAX_PHOTO_BYTES = 3 * 1024 * 1024 // 3MB
 
@@ -66,13 +67,15 @@ export default function PassengerProfilePage() {
         </p>
         <h1 className="mt-1 text-2xl font-extrabold normal-case sm:text-3xl">Your details</h1>
         <p className="mt-1 text-[13.5px] text-ink-soft dark:text-ink-soft-dark">
-          Your photo is the only thing you can change yourself — for everything else, contact{' '}
+          Your photo and password are the only things you can change yourself — for everything else, contact{' '}
           <Link to="/support" className="font-semibold text-brand underline dark:text-brand-light">
             customer care
           </Link>
           .
         </p>
       </div>
+
+      <ChangePasswordCard />
 
       <div className="mb-8 flex items-center gap-5 rounded-2xl border border-line bg-surface p-5 dark:border-line-dark dark:bg-surface-dark">
         <Avatar name={user.name} photo={user.photo} size={72} />

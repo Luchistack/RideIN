@@ -281,6 +281,16 @@ export function AuthProvider({ children }) {
     await api.post(`/auth/admin/users/${userId}/reset-password/`, { new_password: newPassword })
   }
 
+  // Self-service: lets the logged-in user pick their own new password,
+  // e.g. right after an admin reset it for them to something temporary.
+  // Requires the current password to confirm identity.
+  async function changePassword(currentPassword, newPassword) {
+    await api.post('/auth/me/change-password/', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    })
+  }
+
   // --- Notifications (bell) ---------------------------------------------
   async function listNotifications() {
     const data = await api.get('/notifications/mine/')
@@ -350,6 +360,7 @@ export function AuthProvider({ children }) {
         setAccountStatus,
         downloadUserPdf,
         resetUserPassword,
+        changePassword,
         listNotifications,
         unreadNotificationCount,
         markNotificationRead,
