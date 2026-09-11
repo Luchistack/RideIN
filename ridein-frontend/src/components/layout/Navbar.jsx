@@ -4,6 +4,7 @@ import Logo from '../ui/Logo.jsx'
 import ThemeToggle from '../ui/ThemeToggle.jsx'
 import Avatar from '../ui/Avatar.jsx'
 import NotificationBell from '../notifications/NotificationBell.jsx'
+import SupportRideInButton from './SupportRideInButton.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 
 const LINKS = [
@@ -55,6 +56,7 @@ export default function Navbar() {
               an admin is logged in. */}
           {user && (user.role === 'rider' || user.role === 'passenger') && (
             <>
+              <SupportRideInButton />
               <NotificationBell />
               <Link to="/profile" className="flex items-center" aria-label="Your profile">
                 <Avatar name={user.name} photo={user.photo} size={30} tone={user.role === 'rider' ? 'accent' : 'brand'} />

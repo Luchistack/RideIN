@@ -25,3 +25,8 @@ export const FARES = {
 // Naira glyph from ever crowding the first digit if a browser has to substitute
 // a fallback font for that one character (not every typeface ships it).
 export const formatNaira = (amount) => `₦ ${amount.toLocaleString('en-NG')}`
+
+// Where to pay for a ride, for now -- swap this for a per-rider or
+// per-estate account once RideIN has more than one. Single source of truth
+// so BookRidePage and the "Support RideIN" navbar panel never drift apart.
+export const PAYMENT_ACCOUNT = { bank: 'PalmPay', name: 'Dike Faith', number: '7073881814' }

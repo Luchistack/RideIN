@@ -3,7 +3,7 @@ import { Navigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { MILLENNIUM_ESTATE } from '../data/estate.js'
 import { haversineMeters, formatDistance, formatEta } from '../lib/distance.js'
-import { FARES, formatNaira } from '../data/fares.js'
+import { FARES, PAYMENT_ACCOUNT, formatNaira } from '../data/fares.js'
 import Avatar from '../components/ui/Avatar.jsx'
 
 const POLL_MS = 5000
@@ -13,19 +13,12 @@ const LATENESS_FEE = 300
 // Ride is "live" (worth polling / blocking a new booking) in these statuses.
 const OPEN_STATUSES = ['requested', 'accepted', 'enroute']
 
-// Where to pay, for now — swap this for a per-rider or per-estate account
-// once RideIN has more than one.
-const PAYMENT_ACCOUNT = { bank: 'PalmPay', name: 'Dike Faith', number: '7073881814' }
-
 function PaymentBox({ ride, payment, onSubmit, submitting, error }) {
   const [reference, setReference] = useState('')
   const [amount, setAmount] = useState(ride.fare != null ? String(ride.fare) : '')
   const [tip, setTip] = useState('')
-  const [tipRecipient, setTipRecipient] = useState('rider')
 
-  const tipSuffix = payment?.tipAmount
-    ? ` + ${formatNaira(payment.tipAmount)} tip ${payment.tipRecipient === 'app' ? 'to RideIN' : 'for your rider'}`
-    : ''
+  const tipSuffix = payment?.tipAmount ? ` + ${formatNaira(payment.tipAmount)} tip for your rider` : ''
 
   if (payment && payment.status === 'confirmed') {
     return (
@@ -94,37 +87,6 @@ function PaymentBox({ ride, payment, onSubmit, submitting, error }) {
           />
         </div>
       </div>
-      {Number(tip) > 0 && (
-        <div className="mb-2.5">
-          <label className="mb-1 block text-[11.5px] font-semibold text-ink-soft dark:text-ink-soft-dark">
-            Tip goes to
-          </label>
-          <div className="flex gap-1.5 rounded-[10px] bg-surface-2 p-1 dark:bg-surface-2-dark">
-            <button
-              type="button"
-              onClick={() => setTipRecipient('rider')}
-              className={`flex-1 rounded-lg py-2 text-[12px] font-bold ${
-                tipRecipient === 'rider'
-                  ? 'bg-surface text-ink shadow-sm dark:bg-surface-dark dark:text-ink-dark'
-                  : 'text-ink-soft dark:text-ink-soft-dark'
-              }`}
-            >
-              🧑‍✈️ Tip the rider
-            </button>
-            <button
-              type="button"
-              onClick={() => setTipRecipient('app')}
-              className={`flex-1 rounded-lg py-2 text-[12px] font-bold ${
-                tipRecipient === 'app'
-                  ? 'bg-surface text-ink shadow-sm dark:bg-surface-dark dark:text-ink-dark'
-                  : 'text-ink-soft dark:text-ink-soft-dark'
-              }`}
-            >
-              💚 Support RideIN
-            </button>
-          </div>
-        </div>
-      )}
       <input
         value={reference}
         onChange={(e) => setReference(e.target.value)}
@@ -135,7 +97,7 @@ function PaymentBox({ ride, payment, onSubmit, submitting, error }) {
       <button
         type="button"
         disabled={submitting}
-        onClick={() => onSubmit({ reference, amount, tip, tipRecipient })}
+        onClick={() => onSubmit({ reference, amount, tip })}
         className="w-full rounded-full bg-brand py-2.5 text-[13px] font-bold text-white hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
       >
         {submitting ? 'Submitting…' : "I've paid"}
@@ -425,7 +387,7 @@ export default function BookRidePage() {
     }
   }
 
-  async function handlePaySubmit({ reference, amount, tip: transferTip, tipRecipient: transferTipRecipient }) {
+  async function handlePaySubmit({ reference, amount, tip: transferTip }) {
     if (!activeRide || paymentSubmitting) return
     setPaymentSubmitting(true)
     setPaymentError('')
@@ -434,7 +396,6 @@ export default function BookRidePage() {
         bankReference: reference,
         amount: amount || undefined,
         tipAmount: transferTip || undefined,
-        tipRecipient: transferTip ? transferTipRecipient : undefined,
       })
       setPayment(created)
     } catch (err) {
