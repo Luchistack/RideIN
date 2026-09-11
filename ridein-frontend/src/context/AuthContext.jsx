@@ -273,6 +273,14 @@ export function AuthProvider({ children }) {
     await downloadFile(`/auth/admin/users/${userId}/pdf/`, suggestedName || 'ridein-applicant.pdf')
   }
 
+  // Admin-only. There's no self-service "forgot password" flow (no email
+  // backend) -- an admin sets a new password directly here and relays it to
+  // the user themselves. Also logs out every session that user currently
+  // has (see the backend's AdminResetPasswordView).
+  async function resetUserPassword(userId, newPassword) {
+    await api.post(`/auth/admin/users/${userId}/reset-password/`, { new_password: newPassword })
+  }
+
   // --- Notifications (bell) ---------------------------------------------
   async function listNotifications() {
     const data = await api.get('/notifications/mine/')
@@ -341,6 +349,7 @@ export function AuthProvider({ children }) {
         deleteAccount,
         setAccountStatus,
         downloadUserPdf,
+        resetUserPassword,
         listNotifications,
         unreadNotificationCount,
         markNotificationRead,

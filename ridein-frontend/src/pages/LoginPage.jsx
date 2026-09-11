@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [showForgot, setShowForgot] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -56,6 +57,19 @@ export default function LoginPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
+        <button
+          type="button"
+          onClick={() => setShowForgot((v) => !v)}
+          className="mb-4 -mt-2.5 block text-[12.5px] font-semibold text-brand hover:underline dark:text-brand-light"
+        >
+          Forgotten password?
+        </button>
+        {showForgot && (
+          <p className="mb-4 rounded-xl border border-line bg-surface-2 px-3.5 py-3 text-[12.5px] leading-relaxed text-ink-soft dark:border-line-dark dark:bg-surface-2-dark dark:text-ink-soft-dark">
+            RideIN doesn't send password-reset emails. Contact an admin directly (call, WhatsApp, or in person) and
+            they can reset your password for you from their dashboard.
+          </p>
+        )}
         {error && <p className="mb-4 text-[12.5px] font-semibold text-danger dark:text-danger-dark">{error}</p>}
         <button
           type="submit"

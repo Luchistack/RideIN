@@ -83,6 +83,71 @@ const BTN_PRIMARY = `${ACTION_BTN} bg-brand text-white hover:bg-brand-deep`
 const BTN_DANGER_OUTLINE = `${ACTION_BTN} border border-danger text-danger hover:bg-danger/10 dark:border-danger-dark dark:text-danger-dark`
 const BTN_GHOST = `${ACTION_BTN} border border-line hover:border-ink-faint dark:border-line-dark dark:hover:border-ink-faint-dark`
 
+// Inline "reset password" control: click to reveal a small form right in
+// the row (rather than a full page/modal), since this is meant to be a
+// quick "someone forgot their password, fix it now" action for an admin
+// who's usually already on the phone with that person.
+function ResetPasswordButton({ onReset }) {
+  const [open, setOpen] = useState(false)
+  const [value, setValue] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const [done, setDone] = useState(false)
+
+  if (done) {
+    return (
+      <span className="text-[11.5px] font-semibold text-good dark:text-good-dark">Password reset ✓</span>
+    )
+  }
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className={BTN_GHOST}>
+        Reset password
+      </button>
+    )
+  }
+
+  return (
+    <form
+      onSubmit={async (e) => {
+        e.preventDefault()
+        if (value.length < 8) {
+          setErr('At least 8 characters.')
+          return
+        }
+        setBusy(true)
+        setErr('')
+        try {
+          await onReset(value)
+          setDone(true)
+        } catch (e2) {
+          setErr(e2.message || 'Could not reset that password.')
+        } finally {
+          setBusy(false)
+        }
+      }}
+      className="flex items-center gap-1"
+    >
+      <input
+        type="text"
+        autoFocus
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="New password"
+        className="w-28 rounded-full border border-line bg-paper px-2.5 py-1 text-[11.5px] outline-none focus:ring-2 focus:ring-brand dark:border-line-dark dark:bg-paper-dark dark:text-ink-dark"
+      />
+      <button type="submit" disabled={busy} className={BTN_PRIMARY}>
+        {busy ? '…' : 'Set'}
+      </button>
+      <button type="button" onClick={() => setOpen(false)} className={BTN_GHOST}>
+        Cancel
+      </button>
+      {err && <span className="text-[11px] font-semibold text-danger dark:text-danger-dark">{err}</span>}
+    </form>
+  )
+}
+
 function SearchBar({ q, setQ, month, setMonth, onSearch, placeholder }) {
   return (
     <form
@@ -203,7 +268,8 @@ export default function AdminDashboardPage() {
 }
 
 function RidersTab({ onStats }) {
-  const { listAdminRiders, declineRider, approveRider, setAccountStatus, deleteAccount, downloadUserPdf } = useAuth()
+  const { listAdminRiders, declineRider, approveRider, setAccountStatus, deleteAccount, downloadUserPdf, resetUserPassword } =
+    useAuth()
   const [riders, setRiders] = useState([])
   const [loading, setLoading] = useState(true)
   const [q, setQ] = useState('')
@@ -352,6 +418,7 @@ function RidersTab({ onStats }) {
                         >
                           Download PDF
                         </button>
+                        <ResetPasswordButton onReset={(pw) => resetUserPassword(r.id, pw)} />
                         <ConfirmButton
                           confirmLabel="Delete for good?"
                           onConfirm={() => runAction(r.id, () => deleteAccount(r.id))}
@@ -380,7 +447,7 @@ function RidersTab({ onStats }) {
 }
 
 function PassengersTab({ onStats }) {
-  const { listAdminPassengers, setAccountStatus, deleteAccount, downloadUserPdf } = useAuth()
+  const { listAdminPassengers, setAccountStatus, deleteAccount, downloadUserPdf, resetUserPassword } = useAuth()
   const [passengers, setPassengers] = useState([])
   const [loading, setLoading] = useState(true)
   const [q, setQ] = useState('')
@@ -497,6 +564,7 @@ function PassengersTab({ onStats }) {
                         >
                           Download PDF
                         </button>
+                        <ResetPasswordButton onReset={(pw) => resetUserPassword(p.id, pw)} />
                         <ConfirmButton
                           confirmLabel="Delete for good?"
                           onConfirm={() => runAction(p.id, () => deleteAccount(p.id))}
