@@ -121,6 +121,54 @@ export const api = {
   post: (path, body, opts = {}) => request(path, { method: 'POST', body, ...opts }),
   patch: (path, body, opts = {}) => request(path, { method: 'PATCH', body, ...opts }),
   put: (path, body, opts = {}) => request(path, { method: 'PUT', body, ...opts }),
+  delete: (path) => request(path, { method: 'DELETE' }),
+}
+
+// Downloads a binary response (the admin PDF export) and saves it via the
+// browser, using the same auth/refresh handling as `request()` above — kept
+// separate because a PDF response isn't JSON, so it can't go through
+// request()'s res.json() parsing.
+export async function downloadFile(path, filenameFallback = 'download.pdf') {
+  async function attempt(_retried = false) {
+    const headers = {}
+    const token = getAccessToken()
+    if (token) headers.Authorization = `Bearer ${token}`
+
+    const res = await fetch(`${API_BASE_URL}${path}`, { headers })
+
+    if (res.status === 401 && !_retried && getRefreshToken()) {
+      const newAccess = await refreshAccessToken()
+      if (newAccess) return attempt(true)
+    }
+
+    if (!res.ok) {
+      let message = 'Could not download that file.'
+      try {
+        const data = await res.json()
+        message = extractErrorMessage(data)
+      } catch {
+        // response wasn't JSON (likely the PDF itself, or empty) — keep default
+      }
+      const error = new Error(message)
+      error.status = res.status
+      throw error
+    }
+
+    const blob = await res.blob()
+    const disposition = res.headers.get('Content-Disposition') || ''
+    const match = disposition.match(/filename="?([^"]+)"?/)
+    const filename = match ? match[1] : filenameFallback
+
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+  }
+  return attempt()
 }
 
 export { API_BASE_URL }

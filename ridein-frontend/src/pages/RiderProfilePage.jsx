@@ -19,10 +19,12 @@ function ReadOnlyField({ label, value }) {
 }
 
 export default function RiderProfilePage() {
-  const { user, updatePhoto } = useAuth()
+  const { user, updatePhoto, appealDecline } = useAuth()
   const fileRef = useRef(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [appealing, setAppealing] = useState(false)
+  const [justAppealed, setJustAppealed] = useState(false)
 
   // Same guard pattern as the dashboards — a passenger (or anyone signed
   // out) hitting this route never sees a rider's profile.
@@ -66,6 +68,18 @@ export default function RiderProfilePage() {
     ? `••••••${user.accountNumber.slice(-4)}`
     : '—'
 
+  async function handleAppeal() {
+    setAppealing(true)
+    try {
+      await appealDecline()
+      setJustAppealed(true)
+    } catch (err) {
+      setError(err.message || 'Could not submit your appeal — please try again.')
+    } finally {
+      setAppealing(false)
+    }
+  }
+
   return (
     <div className="mx-auto max-w-3xl px-7 py-12">
       <div className="mb-8">
@@ -98,11 +112,16 @@ export default function RiderProfilePage() {
                 Approved
               </span>
             )}
+            {user.status === 'declined' && (
+              <span className="rounded-full bg-danger/10 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-danger dark:bg-danger-dark/15 dark:text-danger-dark">
+                Declined
+              </span>
+            )}
           </div>
           <p className="mt-0.5 text-[13px] text-ink-faint dark:text-ink-faint-dark">
             {user.plateNumber} · {user.estate}
           </p>
-          <div className="mt-2.5 flex items-center gap-2.5">
+          <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
@@ -112,6 +131,21 @@ export default function RiderProfilePage() {
               {busy ? 'Uploading…' : user.photo ? 'Change photo' : 'Add a photo'}
             </button>
             <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
+            {user.status === 'declined' && !(user.appealRequested || justAppealed) && (
+              <button
+                type="button"
+                onClick={handleAppeal}
+                disabled={appealing}
+                className="rounded-full bg-brand px-3.5 py-1.5 text-[12.5px] font-bold text-white hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {appealing ? 'Submitting…' : 'Appeal this decision'}
+              </button>
+            )}
+            {user.status === 'declined' && (user.appealRequested || justAppealed) && (
+              <span className="text-[12.5px] font-semibold text-ink-soft dark:text-ink-soft-dark">
+                Appeal received — an admin will reach out to you.
+              </span>
+            )}
           </div>
           {error && <p className="mt-2 text-[12px] text-danger dark:text-danger-dark">{error}</p>}
         </div>

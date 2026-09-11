@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { api, getAccessToken, getRefreshToken, setTokens, clearTokens } from '../lib/api.js'
+import { api, downloadFile, getAccessToken, getRefreshToken, setTokens, clearTokens } from '../lib/api.js'
 
 // This now talks to the real ridein-backend API (https://api.ridein.ng) via
 // src/lib/api.js instead of localStorage. The public useAuth() interface is
@@ -30,12 +30,20 @@ import { api, getAccessToken, getRefreshToken, setTokens, clearTokens } from '..
 //    signup/login) — Google sign-in needs a new backend endpoint before it
 //    can work for real.
 //
-// 4. listAllUsers() currently only returns PENDING riders, because that's
-//    the one list endpoint that exists (GET /auth/riders/pending/). There
-//    is no "list every rider and passenger" admin endpoint yet, so
-//    AdminDashboardPage's "All riders" / "All passengers" tables will be
-//    incomplete (approved riders and all passengers won't show) until a
-//    real admin listing endpoint is added on the backend.
+// 4. (Resolved) listAllUsers()/listPendingRiders() are kept for backward
+//    compatibility, but AdminDashboardPage now uses listAdminRiders() /
+//    listAdminPassengers() instead — real admin search+list endpoints that
+//    return every rider/passenger, with q/month/date_from/date_to filters,
+//    not just pending riders.
+//
+// This file also now exposes: declineRider/appealDecline (decline+appeal),
+// setAccountStatus/deleteAccount (suspend/block/reactivate + delete, usable
+// on any passenger or rider account), downloadUserPdf (admin on-demand PDF
+// export), the notification-bell functions (listNotifications,
+// unreadNotificationCount, markNotificationRead, markAllNotificationsRead),
+// and the real support-thread functions used by SupportPage and the admin
+// dashboard's Support tab (replacing the old localStorage-only
+// supportStore.js, which never left the browser it was created in).
 
 const AuthContext = createContext(null)
 
@@ -52,7 +60,18 @@ function normalizeUser(apiUser) {
     plateNumber: rp?.vehicle_plate || '',
     estate: rp?.estate || '',
     status: rp?.verification_status || '',
+    appealRequested: rp?.appeal_requested || false,
+    appealRequestedAt: rp?.appeal_requested_at || null,
+    accountStatus: apiUser.account_status || 'active',
   }
+}
+
+// GET list endpoints that paginate (apps.core.pagination.StandardResultsSetPagination)
+// return {count, next, previous, results}. Some non-paginated ones return a
+// plain array. This normalizes either shape to a plain array + count.
+function unwrapList(data) {
+  if (Array.isArray(data)) return { results: data, count: data.length }
+  return { results: data?.results || [], count: data?.count ?? (data?.results || []).length }
 }
 
 export function AuthProvider({ children }) {
@@ -172,22 +191,132 @@ export function AuthProvider({ children }) {
     setUser(normalizeUser(me))
   }
 
-  // Admin-only. verification_status is updated for real now — see gap #4
-  // above for the caveat on the list this reads from.
+  // Admin-only. verification_status is one of 'approved' | 'declined' |
+  // 'pending_review'. Declining does NOT delete the account -- it stays on
+  // record with status=declined; a separate deleteUser() call is needed to
+  // actually remove it.
+  async function setRiderVerification(riderId, verificationStatus) {
+    await api.post(`/auth/riders/${riderId}/approve/`, { verification_status: verificationStatus })
+  }
   async function approveRider(riderId) {
-    await api.post(`/auth/riders/${riderId}/approve/`, { verification_status: 'approved' })
+    return setRiderVerification(riderId, 'approved')
+  }
+  async function declineRider(riderId) {
+    return setRiderVerification(riderId, 'declined')
   }
 
-  // See gap #4 above: currently pending-riders-only, since that's the one
-  // admin list endpoint that exists on the backend today.
-  async function listAllUsers() {
+  // Rider-only, self-service. Appeals their OWN declined application. Does
+  // NOT reprocess anything automatically -- it just flags the profile so an
+  // admin can see it and reach out personally.
+  async function appealDecline() {
+    const result = await api.post('/auth/riders/appeal/')
+    setUser(normalizeUser(result))
+  }
+
+  // See gap #4 above, now resolved: real admin listing endpoints exist.
+  // `params` is a plain object of query params: {q, month, date_from,
+  // date_to, status}.
+  async function listPendingRiders() {
     try {
       const pending = await api.get('/auth/riders/pending/')
-      const results = Array.isArray(pending) ? pending : pending?.results || []
-      return results.map(normalizeUser)
+      return unwrapList(pending).results.map(normalizeUser)
     } catch {
       return []
     }
+  }
+
+  function toQuery(params = {}) {
+    const usp = new URLSearchParams()
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') usp.set(k, v)
+    })
+    const qs = usp.toString()
+    return qs ? `?${qs}` : ''
+  }
+
+  async function listAdminPassengers(params = {}) {
+    const data = await api.get(`/auth/admin/passengers/${toQuery(params)}`)
+    const { results, count } = unwrapList(data)
+    return { users: results.map(normalizeUser), count }
+  }
+
+  async function listAdminRiders(params = {}) {
+    const data = await api.get(`/auth/admin/riders/${toQuery(params)}`)
+    const { results, count } = unwrapList(data)
+    return { users: results.map(normalizeUser), count }
+  }
+
+  // Kept for the pages that just want "every user" without the admin
+  // search UI (none currently do, but this keeps the old call site working
+  // if referenced). Prefer listAdminPassengers/listAdminRiders + search for
+  // the real admin dashboard.
+  async function listAllUsers() {
+    const pending = await listPendingRiders()
+    return pending
+  }
+
+  // Admin-only. Permanently deletes a passenger or rider account. This is a
+  // separate, explicit action from declining -- declining keeps the record.
+  async function deleteAccount(userId) {
+    await api.delete(`/auth/admin/users/${userId}/`)
+  }
+
+  // Admin-only. status is 'active' | 'suspended' | 'blocked'. Works on any
+  // passenger or rider account, approved or not.
+  async function setAccountStatus(userId, status) {
+    await api.post(`/auth/admin/users/${userId}/status/`, { account_status: status })
+  }
+
+  // Admin-only. Builds and downloads a PDF on-demand from that user's
+  // currently stored registration details.
+  async function downloadUserPdf(userId, suggestedName) {
+    await downloadFile(`/auth/admin/users/${userId}/pdf/`, suggestedName || 'ridein-applicant.pdf')
+  }
+
+  // --- Notifications (bell) ---------------------------------------------
+  async function listNotifications() {
+    const data = await api.get('/notifications/mine/')
+    return unwrapList(data).results
+  }
+  async function unreadNotificationCount() {
+    try {
+      const data = await api.get('/notifications/unread-count/')
+      return data?.count || 0
+    } catch {
+      return 0
+    }
+  }
+  async function markNotificationRead(id) {
+    await api.post(`/notifications/${id}/mark-read/`)
+  }
+  async function markAllNotificationsRead() {
+    await api.post('/notifications/mark-all-read/')
+  }
+
+  // --- Support (real backend threads, shared between the rider/passenger
+  // chat view and the admin inbox -- replaces the old localStorage-only
+  // supportStore.js, which never left the browser it was created in) ------
+  async function getMySupportThread() {
+    return api.get('/support/mine/')
+  }
+  async function postMySupportMessage(body) {
+    return api.post('/support/mine/messages/', { body })
+  }
+  async function listAdminThreads(params = {}) {
+    const data = await api.get(`/support/admin/threads/${toQuery(params)}`)
+    return unwrapList(data)
+  }
+  async function getAdminThread(threadId) {
+    return api.get(`/support/admin/threads/${threadId}/`)
+  }
+  async function postAdminReply(threadId, body) {
+    return api.post(`/support/admin/threads/${threadId}/reply/`, { body })
+  }
+  async function markAdminThreadRead(threadId) {
+    return api.post(`/support/admin/threads/${threadId}/mark-read/`)
+  }
+  async function deleteAdminThread(threadId) {
+    await api.delete(`/support/admin/threads/${threadId}/delete/`)
   }
 
   return (
@@ -203,7 +332,26 @@ export function AuthProvider({ children }) {
         logout,
         updatePhoto,
         approveRider,
+        declineRider,
+        appealDecline,
         listAllUsers,
+        listPendingRiders,
+        listAdminPassengers,
+        listAdminRiders,
+        deleteAccount,
+        setAccountStatus,
+        downloadUserPdf,
+        listNotifications,
+        unreadNotificationCount,
+        markNotificationRead,
+        markAllNotificationsRead,
+        getMySupportThread,
+        postMySupportMessage,
+        listAdminThreads,
+        getAdminThread,
+        postAdminReply,
+        markAdminThreadRead,
+        deleteAdminThread,
       }}
     >
       {children}

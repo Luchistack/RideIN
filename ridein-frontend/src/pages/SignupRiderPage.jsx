@@ -5,6 +5,7 @@ import GoogleSignInButton from '../components/auth/GoogleSignInButton.jsx'
 import FaceVerificationStep from '../components/auth/FaceVerificationStep.jsx'
 import FormField from '../components/ui/FormField.jsx'
 import Stepper from '../components/ui/Stepper.jsx'
+import SignupSuccessScreen from '../components/auth/SignupSuccessScreen.jsx'
 import { ESTATES } from '../data/estates.js'
 import { useAuth } from '../context/AuthContext.jsx'
 
@@ -35,6 +36,7 @@ export default function SignupRiderPage() {
   const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [done, setDone] = useState(false)
 
   function set(field) {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }))
@@ -87,7 +89,15 @@ export default function SignupRiderPage() {
       setStep(1)
       return
     }
-    navigate('/dashboard')
+    setDone(true)
+  }
+
+  if (done) {
+    return (
+      <AuthLayout title="Apply to ride with RideIN" subtitle="A few more details, since you'll be carrying passengers." wide>
+        <SignupSuccessScreen onContinue={() => navigate('/dashboard')} />
+      </AuthLayout>
+    )
   }
 
   return (
@@ -212,7 +222,10 @@ export default function SignupRiderPage() {
       {step === 5 && (
         <div>
           <FaceVerificationStep onVerified={handleVerified} />
-          <div className="mt-5 flex gap-2.5">
+          <p className="mt-4 text-center text-[12px] text-ink-faint dark:text-ink-faint-dark">
+            Make sure to fill in the right details without mistakes — your inputs cannot be changed later.
+          </p>
+          <div className="mt-3 flex gap-2.5">
             <button type="button" onClick={back} className="flex-1 rounded-full border border-line py-3 text-sm font-bold hover:border-ink-faint dark:border-line-dark dark:hover:border-ink-faint-dark">
               Back
             </button>

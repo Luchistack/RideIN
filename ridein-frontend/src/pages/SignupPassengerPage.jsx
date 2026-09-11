@@ -4,6 +4,7 @@ import AuthLayout from '../components/auth/AuthLayout.jsx'
 import GoogleSignInButton from '../components/auth/GoogleSignInButton.jsx'
 import FormField from '../components/ui/FormField.jsx'
 import Stepper from '../components/ui/Stepper.jsx'
+import SignupSuccessScreen from '../components/auth/SignupSuccessScreen.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 
 const STEPS = ['Account', 'How you pay']
@@ -16,6 +17,7 @@ export default function SignupPassengerPage() {
   const [account, setAccount] = useState({ name: '', email: '', password: '', authMethod: 'email' })
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [done, setDone] = useState(false)
 
   function handleAccountSubmit(e) {
     e.preventDefault()
@@ -46,7 +48,15 @@ export default function SignupPassengerPage() {
       setStep(1)
       return
     }
-    navigate('/#app')
+    setDone(true)
+  }
+
+  if (done) {
+    return (
+      <AuthLayout title="Sign up as a passenger" subtitle="Book rides around Millennium Estate.">
+        <SignupSuccessScreen onContinue={() => navigate('/dashboard')} />
+      </AuthLayout>
+    )
   }
 
   return (
@@ -113,6 +123,9 @@ export default function SignupPassengerPage() {
             <p className="font-mono text-ink-soft dark:text-ink-soft-dark">RideIN Ltd · 0123456789 · Demo Bank</p>
           </div>
           {error && <p className="mb-4 text-[12.5px] font-semibold text-danger dark:text-danger-dark">{error}</p>}
+          <p className="mb-3 text-[12px] text-ink-faint dark:text-ink-faint-dark">
+            Make sure to fill in the right details without mistakes — your inputs cannot be changed later.
+          </p>
           <button
             type="button"
             onClick={finish}
