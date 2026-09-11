@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import Avatar from '../components/ui/Avatar.jsx'
+import { formatNaira } from '../data/fares.js'
 
 function StatCard({ label, value }) {
   return (
@@ -192,6 +193,7 @@ function SearchBar({ q, setQ, month, setMonth, onSearch, placeholder }) {
 const TABS = [
   { id: 'riders', label: 'Riders' },
   { id: 'passengers', label: 'Passengers' },
+  { id: 'payments', label: 'Payments' },
   { id: 'support', label: 'Support' },
 ]
 
@@ -262,6 +264,7 @@ export default function AdminDashboardPage() {
         />
       )}
       {tab === 'passengers' && <PassengersTab onStats={setStatsPassengers} />}
+      {tab === 'payments' && <PaymentsTab />}
       {tab === 'support' && <SupportTab onStats={setStatsThreads} />}
     </div>
   )
@@ -588,6 +591,164 @@ function PassengersTab({ onStats }) {
           </table>
         </div>
       )}
+    </section>
+  )
+}
+
+function PaymentStatusButtons({ payment, onSetStatus }) {
+  const [busy, setBusy] = useState(false)
+
+  async function set(newStatus) {
+    setBusy(true)
+    try {
+      await onSetStatus(payment.id, newStatus)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const OPTIONS = [
+    { value: 'confirmed', label: 'Confirmed' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'failed', label: 'Not paid' },
+  ]
+
+  return (
+    <div className="flex gap-1.5">
+      {OPTIONS.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          disabled={busy || payment.status === opt.value}
+          onClick={() => set(opt.value)}
+          className={`rounded-full px-2.5 py-1 text-[11px] font-bold whitespace-nowrap disabled:cursor-not-allowed ${
+            payment.status === opt.value
+              ? opt.value === 'confirmed'
+                ? 'bg-good/15 text-good dark:text-good-dark'
+                : opt.value === 'failed'
+                  ? 'bg-danger/10 text-danger dark:bg-danger-dark/15 dark:text-danger-dark'
+                  : 'bg-accent-tint text-accent-deep dark:bg-accent-tint-dark dark:text-accent-light'
+              : 'border border-line hover:border-ink-faint dark:border-line-dark dark:hover:border-ink-faint-dark'
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function PaymentsTab() {
+  const { listAdminPayments, setPaymentStatus } = useAuth()
+  const [payments, setPayments] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [statusFilter, setStatusFilter] = useState('')
+  const [err, setErr] = useState('')
+
+  async function load(filter = statusFilter) {
+    setLoading(true)
+    setErr('')
+    try {
+      const list = await listAdminPayments(filter || undefined)
+      setPayments(list)
+    } catch (e) {
+      setErr(e.message || 'Could not load payments.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function handleSetStatus(paymentId, newStatus) {
+    try {
+      const updated = await setPaymentStatus(paymentId, newStatus)
+      setPayments((prev) => prev.map((p) => (p.id === paymentId ? updated : p)))
+    } catch (e) {
+      setErr(e.message || 'Could not update that payment.')
+    }
+  }
+
+  const FILTERS = [
+    { value: '', label: 'All' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'confirmed', label: 'Confirmed' },
+    { value: 'failed', label: 'Not paid' },
+  ]
+
+  return (
+    <section>
+      <div className="mb-4 flex flex-wrap gap-2">
+        {FILTERS.map((f) => (
+          <button
+            key={f.value}
+            type="button"
+            onClick={() => {
+              setStatusFilter(f.value)
+              load(f.value)
+            }}
+            className={`rounded-full px-3.5 py-1.5 text-[12.5px] font-bold ${
+              statusFilter === f.value
+                ? 'bg-brand text-white'
+                : 'border border-line hover:border-ink-faint dark:border-line-dark dark:hover:border-ink-faint-dark'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+      {err && <p className="mb-3 text-[12.5px] font-semibold text-danger dark:text-danger-dark">{err}</p>}
+      <div className="overflow-x-auto rounded-2xl border border-line dark:border-line-dark">
+        <table className="w-full min-w-[760px] border-collapse text-left text-[13.5px]">
+          <thead>
+            <tr className="border-b border-line bg-surface-2 dark:border-line-dark dark:bg-surface-2-dark">
+              <Th>Submitted</Th>
+              <Th>Passenger</Th>
+              <Th>Rider</Th>
+              <Th>Reference</Th>
+              <Th align="right">Amount</Th>
+              <Th>Set status</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading && (
+              <tr>
+                <Td colSpan={6} className="text-center text-ink-faint dark:text-ink-faint-dark">
+                  Loading…
+                </Td>
+              </tr>
+            )}
+            {!loading && payments.length === 0 && (
+              <tr>
+                <Td colSpan={6} className="text-center text-ink-faint dark:text-ink-faint-dark">
+                  No payments match.
+                </Td>
+              </tr>
+            )}
+            {payments.map((payment) => (
+              <tr key={payment.id} className="border-b border-line last:border-0 dark:border-line-dark">
+                <Td className="font-mono text-[12px] text-ink-faint dark:text-ink-faint-dark">
+                  {payment.submittedAt ? new Date(payment.submittedAt).toLocaleString() : '—'}
+                </Td>
+                <Td>{payment.ride?.passenger?.name || '—'}</Td>
+                <Td>{payment.ride?.rider?.name || '—'}</Td>
+                <Td className="max-w-[160px] truncate text-ink-faint dark:text-ink-faint-dark">
+                  {payment.bankReference || '—'}
+                </Td>
+                <Td align="right" className="font-mono">
+                  {payment.amount != null ? formatNaira(payment.amount) : '—'}
+                </Td>
+                <Td>
+                  <PaymentStatusButtons payment={payment} onSetStatus={handleSetStatus} />
+                </Td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   )
 }

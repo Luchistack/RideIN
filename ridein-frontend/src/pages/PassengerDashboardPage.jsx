@@ -1,6 +1,6 @@
-import { Navigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
-import { RIDE_HISTORY, PAYMENT_HISTORY } from '../data/passengerRecords.js'
 import { formatNaira } from '../data/fares.js'
 
 function StatCard({ label, value }) {
@@ -14,8 +14,45 @@ function StatCard({ label, value }) {
   )
 }
 
+function PaymentStatusPill({ status }) {
+  const map = {
+    pending: ['Pending', 'bg-accent-tint text-accent-deep dark:bg-accent-tint-dark dark:text-accent-light'],
+    confirmed: ['Confirmed', 'bg-good/15 text-good dark:text-good-dark'],
+    failed: ['Not paid', 'bg-danger/10 text-danger dark:bg-danger-dark/15 dark:text-danger-dark'],
+  }
+  const [label, cls] = map[status] || [status, 'bg-surface-2 text-ink-faint dark:bg-surface-2-dark dark:text-ink-faint-dark']
+  return <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide ${cls}`}>{label}</span>
+}
+
 export default function PassengerDashboardPage() {
-  const { user, logout } = useAuth()
+  const { user, logout, listMyRides, listMyPayments } = useAuth()
+
+  // Real ride/payment history — every account starts clean, no sample
+  // "demo" rides or payments to clear out later.
+  const [rideHistory, setRideHistory] = useState([])
+  const [paymentHistory, setPaymentHistory] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!user || user.role !== 'passenger') return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const [rides, payments] = await Promise.all([listMyRides(), listMyPayments()])
+        if (cancelled) return
+        setRideHistory(rides.filter((r) => r.status === 'completed'))
+        setPaymentHistory(payments)
+      } catch {
+        // Leave history empty rather than blocking the rest of the page.
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id])
 
   // Only a logged-in passenger can see this page — a rider (or anyone else)
   // hitting this route gets sent back to login, never shown passenger data.
@@ -23,7 +60,9 @@ export default function PassengerDashboardPage() {
     return <Navigate to="/login" replace />
   }
 
-  const totalSpent = PAYMENT_HISTORY.filter((w) => w.amount < 0).reduce((sum, w) => sum + Math.abs(w.amount), 0)
+  const totalSpent = paymentHistory
+    .filter((p) => p.status === 'confirmed')
+    .reduce((sum, p) => sum + (p.amount || 0), 0)
 
   return (
     <div className="mx-auto max-w-5xl px-7 py-12">
@@ -44,14 +83,20 @@ export default function PassengerDashboardPage() {
         </button>
       </div>
 
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-surface p-5 dark:border-line-dark dark:bg-surface-dark">
+        <p className="text-[13.5px] text-ink-soft dark:text-ink-soft-dark">Need to get somewhere?</p>
+        <Link
+          to="/book-ride"
+          className="rounded-full bg-brand px-5 py-2.5 text-[13px] font-bold text-white hover:bg-brand-deep"
+        >
+          Book a ride
+        </Link>
+      </div>
+
       <div className="mb-10 grid gap-4 sm:grid-cols-2">
-        <StatCard label="Rides taken" value={RIDE_HISTORY.length} />
+        <StatCard label="Rides taken" value={rideHistory.length} />
         <StatCard label="Total spent" value={formatNaira(totalSpent)} />
       </div>
-      <p className="-mt-6 mb-10 text-[12.5px] text-ink-faint dark:text-ink-faint-dark">
-        Pay each ride by bank transfer to: <span className="font-mono">RideIN Ltd · 0123456789 · Demo Bank</span> —
-        there's no pre-funded balance to keep topped up.
-      </p>
 
       <section className="mb-10">
         <div className="mb-3 flex items-center justify-between">
@@ -64,21 +109,41 @@ export default function PassengerDashboardPage() {
               <tr className="border-b border-line bg-surface-2 dark:border-line-dark dark:bg-surface-2-dark">
                 <Th>Date</Th>
                 <Th>Rider</Th>
-                <Th>Type</Th>
+                <Th>Pickup</Th>
                 <Th align="right">Fare</Th>
                 <Th align="right">Your rating</Th>
               </tr>
             </thead>
             <tbody>
-              {RIDE_HISTORY.map((ride) => (
-                <tr key={ride.id} className="border-b border-line last:border-0 dark:border-line-dark">
-                  <Td className="font-mono text-[12.5px] text-ink-faint dark:text-ink-faint-dark">{ride.date}</Td>
-                  <Td>{ride.rider}</Td>
-                  <Td>{ride.type}</Td>
-                  <Td align="right" className="font-mono">
-                    {formatNaira(ride.fare)}
+              {loading && (
+                <tr>
+                  <Td colSpan={5} className="text-center text-ink-faint dark:text-ink-faint-dark">
+                    Loading…
                   </Td>
-                  <Td align="right">★ {ride.ratingGiven}</Td>
+                </tr>
+              )}
+              {!loading && rideHistory.length === 0 && (
+                <tr>
+                  <Td colSpan={5} className="text-center text-ink-faint dark:text-ink-faint-dark">
+                    No completed rides yet —{' '}
+                    <Link to="/book-ride" className="font-semibold underline">
+                      book your first ride
+                    </Link>
+                    .
+                  </Td>
+                </tr>
+              )}
+              {rideHistory.map((ride) => (
+                <tr key={ride.id} className="border-b border-line last:border-0 dark:border-line-dark">
+                  <Td className="font-mono text-[12.5px] text-ink-faint dark:text-ink-faint-dark">
+                    {ride.completedAt ? new Date(ride.completedAt).toLocaleDateString() : '—'}
+                  </Td>
+                  <Td>{ride.rider?.name || '—'}</Td>
+                  <Td className="max-w-[200px] truncate">{ride.pickupAddress || 'Live location'}</Td>
+                  <Td align="right" className="font-mono">
+                    {ride.fare != null ? formatNaira(ride.fare) : '—'}
+                  </Td>
+                  <Td align="right">{ride.rating ? `★ ${ride.rating}` : '—'}</Td>
                 </tr>
               ))}
             </tbody>
@@ -96,23 +161,37 @@ export default function PassengerDashboardPage() {
             <thead>
               <tr className="border-b border-line bg-surface-2 dark:border-line-dark dark:bg-surface-2-dark">
                 <Th>Date</Th>
-                <Th>Description</Th>
-                <Th>Method</Th>
+                <Th>Rider</Th>
+                <Th>Status</Th>
                 <Th align="right">Amount</Th>
               </tr>
             </thead>
             <tbody>
-              {PAYMENT_HISTORY.map((entry) => (
+              {loading && (
+                <tr>
+                  <Td colSpan={4} className="text-center text-ink-faint dark:text-ink-faint-dark">
+                    Loading…
+                  </Td>
+                </tr>
+              )}
+              {!loading && paymentHistory.length === 0 && (
+                <tr>
+                  <Td colSpan={4} className="text-center text-ink-faint dark:text-ink-faint-dark">
+                    No payments yet.
+                  </Td>
+                </tr>
+              )}
+              {paymentHistory.map((entry) => (
                 <tr key={entry.id} className="border-b border-line last:border-0 dark:border-line-dark">
-                  <Td className="font-mono text-[12.5px] text-ink-faint dark:text-ink-faint-dark">{entry.date}</Td>
-                  <Td>{entry.description}</Td>
-                  <Td>{entry.method}</Td>
-                  <Td
-                    align="right"
-                    className={`font-mono ${entry.amount < 0 ? 'text-ink dark:text-ink-dark' : 'text-good dark:text-good-dark'}`}
-                  >
-                    {entry.amount < 0 ? '-' : '+'}
-                    {formatNaira(Math.abs(entry.amount))}
+                  <Td className="font-mono text-[12.5px] text-ink-faint dark:text-ink-faint-dark">
+                    {entry.submittedAt ? new Date(entry.submittedAt).toLocaleDateString() : '—'}
+                  </Td>
+                  <Td>{entry.ride?.rider?.name || '—'}</Td>
+                  <Td>
+                    <PaymentStatusPill status={entry.status} />
+                  </Td>
+                  <Td align="right" className="font-mono">
+                    {entry.amount != null ? formatNaira(entry.amount) : '—'}
                   </Td>
                 </tr>
               ))}
@@ -136,6 +215,10 @@ function Th({ children, align = 'left' }) {
   )
 }
 
-function Td({ children, align = 'left', className = '' }) {
-  return <td className={`px-4 py-3 ${align === 'right' ? 'text-right' : 'text-left'} ${className}`}>{children}</td>
+function Td({ children, align = 'left', className = '', colSpan }) {
+  return (
+    <td colSpan={colSpan} className={`px-4 py-3 ${align === 'right' ? 'text-right' : 'text-left'} ${className}`}>
+      {children}
+    </td>
+  )
 }

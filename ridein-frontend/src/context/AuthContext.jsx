@@ -453,6 +453,50 @@ export function AuthProvider({ children }) {
     return { lat: Number(data.lat), lng: Number(data.lng), updatedAt: data.updated_at }
   }
 
+  // --- Payments (bank transfer, admin-confirmed) --------------------------
+
+  function normalizePayment(apiPayment) {
+    if (!apiPayment) return null
+    return {
+      id: apiPayment.id,
+      ride: typeof apiPayment.ride === 'object' ? normalizeRide(apiPayment.ride) : apiPayment.ride,
+      amount: apiPayment.amount != null ? Number(apiPayment.amount) : null,
+      bankReference: apiPayment.bank_reference || '',
+      status: apiPayment.status,
+      submittedAt: apiPayment.submitted_at,
+      confirmedAt: apiPayment.confirmed_at,
+    }
+  }
+
+  // Passenger only: a single "I've paid" tap for one of their own rides.
+  // bankReference is optional -- nothing requires typing anything.
+  async function submitPayment(rideId, bankReference) {
+    const body = { ride: rideId }
+    if (bankReference) body.bank_reference = bankReference
+    const data = await api.post('/payments/submit/', body)
+    return normalizePayment(data)
+  }
+
+  async function listMyPayments() {
+    const data = await api.get('/payments/mine/')
+    return unwrapList(data).results.map(normalizePayment)
+  }
+
+  // Admin only: every payment, newest first, with the ride (passenger/
+  // rider/pickup) nested. Optional status filter: 'pending' | 'confirmed' | 'failed'.
+  async function listAdminPayments(statusFilter) {
+    const query = statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : ''
+    const data = await api.get(`/payments/admin/${query}`)
+    return unwrapList(data).results.map(normalizePayment)
+  }
+
+  // Admin only. status: 'confirmed' | 'pending' | 'failed' (shown in the UI
+  // as "Not paid").
+  async function setPaymentStatus(paymentId, statusValue) {
+    const data = await api.post(`/payments/${paymentId}/confirm/`, { status: statusValue })
+    return normalizePayment(data)
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -487,6 +531,10 @@ export function AuthProvider({ children }) {
         upsertMyLocation,
         listNearbyRiders,
         getPassengerLocation,
+        submitPayment,
+        listMyPayments,
+        listAdminPayments,
+        setPaymentStatus,
         listNotifications,
         unreadNotificationCount,
         markNotificationRead,

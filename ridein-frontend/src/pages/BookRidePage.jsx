@@ -13,6 +13,66 @@ const LATENESS_FEE = 300
 // Ride is "live" (worth polling / blocking a new booking) in these statuses.
 const OPEN_STATUSES = ['requested', 'accepted', 'enroute']
 
+// Where to pay, for now — swap this for a per-rider or per-estate account
+// once RideIN has more than one.
+const PAYMENT_ACCOUNT = { bank: 'PalmPay', name: 'Dike Faith', number: '7073881814' }
+
+function PaymentBox({ ride, payment, onSubmit, submitting, error }) {
+  const [reference, setReference] = useState('')
+
+  if (payment && payment.status === 'confirmed') {
+    return (
+      <div className="mb-4 rounded-xl border border-good/30 bg-good/10 px-3.5 py-3 text-[12.5px] font-semibold text-good dark:border-good-dark/30 dark:bg-good-dark/10 dark:text-good-dark">
+        ✓ Payment confirmed by an admin.
+      </div>
+    )
+  }
+
+  if (payment && payment.status === 'pending') {
+    return (
+      <div className="mb-4 rounded-xl border border-accent/30 bg-accent-tint px-3.5 py-3 text-[12.5px] text-accent-deep dark:border-accent/20 dark:bg-accent-tint-dark dark:text-accent-light">
+        <b>Payment submitted</b> — an admin will confirm it shortly. Show your rider the receipt before you leave.
+      </div>
+    )
+  }
+
+  if (payment && payment.status === 'failed') {
+    return (
+      <div className="mb-4 rounded-xl border border-danger/30 bg-danger/10 px-3.5 py-3 text-[12.5px] text-danger dark:border-danger-dark/30 dark:bg-danger-dark/10 dark:text-danger-dark">
+        <b>Marked as not paid.</b> Double-check the transfer went through, then contact support.
+      </div>
+    )
+  }
+
+  return (
+    <div className="mb-4 rounded-xl border border-line bg-surface p-3.5 dark:border-line-dark dark:bg-surface-dark">
+      <div className="mb-2 text-[12.5px] font-bold normal-case">Pay by bank transfer</div>
+      <div className="mb-3 rounded-lg bg-surface-2 px-3 py-2.5 font-mono text-[13px] dark:bg-surface-2-dark">
+        {PAYMENT_ACCOUNT.bank} · {PAYMENT_ACCOUNT.name} · {PAYMENT_ACCOUNT.number}
+        {ride.fare != null && <span className="ml-2 font-bold text-brand dark:text-brand-light">{formatNaira(ride.fare)}</span>}
+      </div>
+      <input
+        value={reference}
+        onChange={(e) => setReference(e.target.value)}
+        placeholder="Transfer reference (optional)"
+        className="mb-2.5 w-full rounded-[9px] border border-line bg-paper px-3.5 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-brand dark:border-line-dark dark:bg-paper-dark dark:text-ink-dark"
+      />
+      {error && <p className="mb-2 text-[12px] font-semibold text-danger dark:text-danger-dark">{error}</p>}
+      <button
+        type="button"
+        disabled={submitting}
+        onClick={() => onSubmit(reference)}
+        className="w-full rounded-full bg-brand py-2.5 text-[13px] font-bold text-white hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {submitting ? 'Submitting…' : "I've paid"}
+      </button>
+      <p className="mt-2 text-[11.5px] text-ink-faint dark:text-ink-faint-dark">
+        Show your rider the receipt before you leave — an admin still confirms it here.
+      </p>
+    </div>
+  )
+}
+
 function LatenessNote() {
   return (
     <div className="rounded-xl border border-accent/30 bg-accent-tint px-3.5 py-3 text-[12.5px] leading-relaxed text-accent-deep dark:border-accent/20 dark:bg-accent-tint-dark dark:text-accent-light">
@@ -63,11 +123,24 @@ function RiderCard({ rider, distanceMeters, selected, onSelect, busy }) {
 }
 
 export default function BookRidePage() {
-  const { user, requestRide, getRide, listMyRides, cancelRide, completeRide, upsertMyLocation, listNearbyRiders } =
-    useAuth()
+  const {
+    user,
+    requestRide,
+    getRide,
+    listMyRides,
+    cancelRide,
+    completeRide,
+    upsertMyLocation,
+    listNearbyRiders,
+    submitPayment,
+    listMyPayments,
+  } = useAuth()
 
   const [loadingInitial, setLoadingInitial] = useState(true)
   const [activeRide, setActiveRide] = useState(null)
+  const [payment, setPayment] = useState(null)
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false)
+  const [paymentError, setPaymentError] = useState('')
 
   // --- Pickup step state ---
   const [pickupMode, setPickupMode] = useState('live') // 'live' | 'manual'
@@ -147,6 +220,33 @@ export default function BookRidePage() {
     return () => clearInterval(pollRef.current)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRide?.id, activeRide?.status])
+
+  // Look up (and keep refreshing) this ride's payment, if one exists, so
+  // "pending" flips to "confirmed"/"not paid" automatically once an admin
+  // acts on it — no need to reload the page.
+  useEffect(() => {
+    if (!activeRide) {
+      setPayment(null)
+      return
+    }
+    let stopped = false
+    async function refresh() {
+      try {
+        const mine = await listMyPayments()
+        if (stopped) return
+        setPayment(mine.find((p) => p.ride?.id === activeRide.id) || null)
+      } catch {
+        // Quietly retry next tick.
+      }
+    }
+    refresh()
+    const id = setInterval(refresh, POLL_MS)
+    return () => {
+      stopped = true
+      clearInterval(id)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRide?.id])
 
   if (!user || user.role !== 'passenger') {
     return <Navigate to="/login" replace />
@@ -246,8 +346,24 @@ export default function BookRidePage() {
     }
   }
 
+  async function handlePaySubmit(reference) {
+    if (!activeRide || paymentSubmitting) return
+    setPaymentSubmitting(true)
+    setPaymentError('')
+    try {
+      const created = await submitPayment(activeRide.id, reference)
+      setPayment(created)
+    } catch (err) {
+      setPaymentError(err.message || 'Could not submit that — please try again.')
+    } finally {
+      setPaymentSubmitting(false)
+    }
+  }
+
   function bookAnother() {
     setActiveRide(null)
+    setPayment(null)
+    setPaymentError('')
     setSelectedRiderId(null)
     setSubmitError('')
     setRatingOpen(false)
@@ -292,6 +408,10 @@ export default function BookRidePage() {
           onComplete={handleComplete}
           completing={completing}
           onBookAnother={bookAnother}
+          payment={payment}
+          onPaySubmit={handlePaySubmit}
+          paymentSubmitting={paymentSubmitting}
+          paymentError={paymentError}
         />
       ) : (
         <div className="rounded-[30px] border-2 border-line bg-gradient-to-b from-surface to-surface-2 p-4 shadow-[0_30px_70px_-25px_rgba(0,0,0,0.45)] dark:border-line-dark dark:from-surface-dark dark:to-surface-2-dark dark:shadow-[0_30px_70px_-25px_rgba(0,0,0,0.75)]">
@@ -449,6 +569,10 @@ function ActiveRideCard({
   onComplete,
   completing,
   onBookAnother,
+  payment,
+  onPaySubmit,
+  paymentSubmitting,
+  paymentError,
 }) {
   const isWaiting = ride.status === 'requested'
   const isEnRoute = ride.status === 'accepted' || ride.status === 'enroute'
@@ -518,9 +642,21 @@ function ActiveRideCard({
           </div>
         )}
 
+        {(isWaiting || isEnRoute) && (
+          <PaymentBox
+            ride={ride}
+            payment={payment}
+            onSubmit={onPaySubmit}
+            submitting={paymentSubmitting}
+            error={paymentError}
+          />
+        )}
+
         {isDone && (
           <p className="mb-4 text-[13px] text-ink-soft dark:text-ink-soft-dark">
-            Pay {ride.rider?.name || 'your rider'} by bank transfer to close this out — nothing owed here in-app.
+            {payment?.status === 'confirmed'
+              ? 'Payment confirmed — nothing else owed.'
+              : `Pay ${ride.rider?.name || 'your rider'} by bank transfer to close this out, if you haven't already.`}
           </p>
         )}
 

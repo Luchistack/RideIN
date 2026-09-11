@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
-import { ORDER_HISTORY, PAYMENT_HISTORY } from '../data/riderRecords.js'
 import { formatNaira } from '../data/fares.js'
 import Avatar from '../components/ui/Avatar.jsx'
 
@@ -58,7 +57,24 @@ function AvailableRideCard({ ride, onAccept, busy }) {
   )
 }
 
-function ActiveRideBanner({ ride, onCancel, cancelling }) {
+function PaymentStatusNote({ payment }) {
+  if (!payment) {
+    return (
+      <p className="mb-3 text-[12px] text-ink-faint dark:text-ink-faint-dark">
+        No payment submitted yet — check with the passenger before you drive off.
+      </p>
+    )
+  }
+  const map = {
+    pending: ['Payment submitted — waiting on an admin to confirm it.', 'text-accent-deep dark:text-accent-light'],
+    confirmed: ['✓ Payment confirmed by an admin.', 'text-good dark:text-good-dark'],
+    failed: ['Payment marked as not paid — check with the passenger.', 'text-danger dark:text-danger-dark'],
+  }
+  const [text, cls] = map[payment.status] || [payment.status, '']
+  return <p className={`mb-3 text-[12.5px] font-semibold ${cls}`}>{text}</p>
+}
+
+function ActiveRideBanner({ ride, onCancel, cancelling, payment }) {
   return (
     <div className="mb-10 rounded-[26px] border-2 border-line bg-gradient-to-b from-surface to-surface-2 p-4 shadow-[0_24px_55px_-22px_rgba(0,0,0,0.4)] dark:border-line-dark dark:from-surface-dark dark:to-surface-2-dark dark:shadow-[0_24px_55px_-22px_rgba(0,0,0,0.7)]">
       <div className="rounded-[18px] bg-paper p-4 dark:bg-paper-dark">
@@ -89,6 +105,7 @@ function ActiveRideBanner({ ride, onCancel, cancelling }) {
             </a>
           )}
         </div>
+        <PaymentStatusNote payment={payment} />
         <p className="mb-3 text-[12px] text-ink-faint dark:text-ink-faint-dark">
           If the passenger isn't at the pickup spot, you're not required to wait — lateness fees are settled
           directly between you and the passenger. The passenger marks the ride complete once you're done.
@@ -107,13 +124,21 @@ function ActiveRideBanner({ ride, onCancel, cancelling }) {
 }
 
 export default function RiderDashboardPage() {
-  const { user, logout, listAvailableRides, listMyRides, acceptRide, cancelRide } = useAuth()
+  const { user, logout, listAvailableRides, listMyRides, acceptRide, cancelRide, listMyPayments } = useAuth()
 
   const [available, setAvailable] = useState([])
   const [activeRide, setActiveRide] = useState(null)
+  const [activePayment, setActivePayment] = useState(null)
   const [acceptingId, setAcceptingId] = useState(null)
   const [cancelling, setCancelling] = useState(false)
   const [ordersError, setOrdersError] = useState('')
+
+  // Real ride/payment history — replaces the old hardcoded demo records so
+  // every account starts with a clean, honest "no rides yet" instead of
+  // fake sample data.
+  const [history, setHistory] = useState([])
+  const [paymentHistory, setPaymentHistory] = useState([])
+  const [historyLoading, setHistoryLoading] = useState(true)
 
   const availablePollRef = useRef(null)
   const activePollRef = useRef(null)
@@ -135,6 +160,54 @@ export default function RiderDashboardPage() {
     return () => clearInterval(activePollRef.current)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])
+
+  // Real order/payment history, loaded once — completed and cancelled
+  // rides don't change on their own, so this doesn't need to poll.
+  useEffect(() => {
+    if (!user || user.role !== 'rider') return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const [rides, payments] = await Promise.all([listMyRides(), listMyPayments()])
+        if (cancelled) return
+        setHistory(rides.filter((r) => r.status === 'completed'))
+        setPaymentHistory(payments)
+      } catch {
+        // Leave history empty rather than blocking the rest of the page.
+      } finally {
+        if (!cancelled) setHistoryLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, activeRide?.status])
+
+  // Keep the active ride's payment status current while it's open.
+  useEffect(() => {
+    if (!activeRide) {
+      setActivePayment(null)
+      return
+    }
+    let stopped = false
+    async function refresh() {
+      try {
+        const mine = await listMyPayments()
+        if (stopped) return
+        setActivePayment(mine.find((p) => p.ride?.id === activeRide.id) || null)
+      } catch {
+        // Quietly retry next tick.
+      }
+    }
+    refresh()
+    const id = setInterval(refresh, ACTIVE_POLL_MS)
+    return () => {
+      stopped = true
+      clearInterval(id)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRide?.id])
 
   useEffect(() => {
     if (!user || user.role !== 'rider' || activeRide) {
@@ -190,8 +263,8 @@ export default function RiderDashboardPage() {
     }
   }
 
-  const totalEarned = ORDER_HISTORY.reduce((sum, o) => sum + o.fare, 0)
-  const totalTips = PAYMENT_HISTORY.filter((p) => p.method === 'Cash').reduce((sum, p) => sum + p.amount, 0)
+  const totalEarned = history.reduce((sum, r) => sum + (r.fare || 0), 0)
+  const totalTips = history.reduce((sum, r) => sum + (r.tipAmount || 0), 0)
 
   return (
     <div className="mx-auto max-w-5xl px-7 py-12">
@@ -220,7 +293,7 @@ export default function RiderDashboardPage() {
       </div>
 
       {activeRide && (
-        <ActiveRideBanner ride={activeRide} onCancel={handleCancelActive} cancelling={cancelling} />
+        <ActiveRideBanner ride={activeRide} onCancel={handleCancelActive} cancelling={cancelling} payment={activePayment} />
       )}
 
       {!activeRide && (
@@ -252,9 +325,9 @@ export default function RiderDashboardPage() {
       )}
 
       <div className="mb-10 grid gap-4 sm:grid-cols-3">
-        <StatCard label="Rides completed" value={ORDER_HISTORY.length} />
+        <StatCard label="Rides completed" value={history.length} />
         <StatCard label="Fares earned" value={formatNaira(totalEarned)} />
-        <StatCard label="Cash tips" value={formatNaira(totalTips)} />
+        <StatCard label="Tips earned" value={formatNaira(totalTips)} />
       </div>
 
       <section className="mb-10">
@@ -268,21 +341,37 @@ export default function RiderDashboardPage() {
               <tr className="border-b border-line bg-surface-2 dark:border-line-dark dark:bg-surface-2-dark">
                 <Th>Date</Th>
                 <Th>Passenger</Th>
-                <Th>Type</Th>
+                <Th>Pickup</Th>
                 <Th align="right">Fare</Th>
                 <Th align="right">Rating</Th>
               </tr>
             </thead>
             <tbody>
-              {ORDER_HISTORY.map((order) => (
-                <tr key={order.id} className="border-b border-line last:border-0 dark:border-line-dark">
-                  <Td className="font-mono text-[12.5px] text-ink-faint dark:text-ink-faint-dark">{order.date}</Td>
-                  <Td>{order.passenger}</Td>
-                  <Td>{order.type}</Td>
-                  <Td align="right" className="font-mono">
-                    {formatNaira(order.fare)}
+              {historyLoading && (
+                <tr>
+                  <Td colSpan={5} className="text-center text-ink-faint dark:text-ink-faint-dark">
+                    Loading…
                   </Td>
-                  <Td align="right">★ {order.rating}</Td>
+                </tr>
+              )}
+              {!historyLoading && history.length === 0 && (
+                <tr>
+                  <Td colSpan={5} className="text-center text-ink-faint dark:text-ink-faint-dark">
+                    No completed rides yet.
+                  </Td>
+                </tr>
+              )}
+              {history.map((ride) => (
+                <tr key={ride.id} className="border-b border-line last:border-0 dark:border-line-dark">
+                  <Td className="font-mono text-[12.5px] text-ink-faint dark:text-ink-faint-dark">
+                    {ride.completedAt ? new Date(ride.completedAt).toLocaleDateString() : '—'}
+                  </Td>
+                  <Td>{ride.passenger?.name || '—'}</Td>
+                  <Td className="max-w-[200px] truncate">{ride.pickupAddress || 'Live location'}</Td>
+                  <Td align="right" className="font-mono">
+                    {ride.fare != null ? formatNaira(ride.fare) : '—'}
+                  </Td>
+                  <Td align="right">{ride.rating ? `★ ${ride.rating}` : '—'}</Td>
                 </tr>
               ))}
             </tbody>
@@ -300,19 +389,37 @@ export default function RiderDashboardPage() {
             <thead>
               <tr className="border-b border-line bg-surface-2 dark:border-line-dark dark:bg-surface-2-dark">
                 <Th>Date</Th>
-                <Th>Description</Th>
-                <Th>Method</Th>
+                <Th>Passenger</Th>
+                <Th>Status</Th>
                 <Th align="right">Amount</Th>
               </tr>
             </thead>
             <tbody>
-              {PAYMENT_HISTORY.map((payment) => (
+              {historyLoading && (
+                <tr>
+                  <Td colSpan={4} className="text-center text-ink-faint dark:text-ink-faint-dark">
+                    Loading…
+                  </Td>
+                </tr>
+              )}
+              {!historyLoading && paymentHistory.length === 0 && (
+                <tr>
+                  <Td colSpan={4} className="text-center text-ink-faint dark:text-ink-faint-dark">
+                    No payments yet.
+                  </Td>
+                </tr>
+              )}
+              {paymentHistory.map((payment) => (
                 <tr key={payment.id} className="border-b border-line last:border-0 dark:border-line-dark">
-                  <Td className="font-mono text-[12.5px] text-ink-faint dark:text-ink-faint-dark">{payment.date}</Td>
-                  <Td>{payment.description}</Td>
-                  <Td>{payment.method}</Td>
-                  <Td align="right" className="font-mono text-good dark:text-good-dark">
-                    {formatNaira(payment.amount)}
+                  <Td className="font-mono text-[12.5px] text-ink-faint dark:text-ink-faint-dark">
+                    {payment.submittedAt ? new Date(payment.submittedAt).toLocaleDateString() : '—'}
+                  </Td>
+                  <Td>{payment.ride?.passenger?.name || '—'}</Td>
+                  <Td>
+                    <PaymentStatusPill status={payment.status} />
+                  </Td>
+                  <Td align="right" className="font-mono">
+                    {payment.amount != null ? formatNaira(payment.amount) : '—'}
                   </Td>
                 </tr>
               ))}
@@ -328,6 +435,16 @@ export default function RiderDashboardPage() {
   )
 }
 
+function PaymentStatusPill({ status }) {
+  const map = {
+    pending: ['Pending', 'bg-accent-tint text-accent-deep dark:bg-accent-tint-dark dark:text-accent-light'],
+    confirmed: ['Confirmed', 'bg-good/15 text-good dark:text-good-dark'],
+    failed: ['Not paid', 'bg-danger/10 text-danger dark:bg-danger-dark/15 dark:text-danger-dark'],
+  }
+  const [label, cls] = map[status] || [status, 'bg-surface-2 text-ink-faint dark:bg-surface-2-dark dark:text-ink-faint-dark']
+  return <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide ${cls}`}>{label}</span>
+}
+
 function Th({ children, align = 'left' }) {
   return (
     <th className={`px-4 py-3 text-[11.5px] font-bold uppercase tracking-wide text-ink-soft dark:text-ink-soft-dark ${align === 'right' ? 'text-right' : 'text-left'}`}>
@@ -336,6 +453,10 @@ function Th({ children, align = 'left' }) {
   )
 }
 
-function Td({ children, align = 'left', className = '' }) {
-  return <td className={`px-4 py-3 ${align === 'right' ? 'text-right' : 'text-left'} ${className}`}>{children}</td>
+function Td({ children, align = 'left', className = '', colSpan }) {
+  return (
+    <td colSpan={colSpan} className={`px-4 py-3 ${align === 'right' ? 'text-right' : 'text-left'} ${className}`}>
+      {children}
+    </td>
+  )
 }
