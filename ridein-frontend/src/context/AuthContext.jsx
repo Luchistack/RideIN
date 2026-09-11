@@ -74,6 +74,45 @@ function unwrapList(data) {
   return { results: data?.results || [], count: data?.count ?? (data?.results || []).length }
 }
 
+// Flattens a ride's nested passenger/rider/requested_rider user objects
+// through normalizeUser() (so pages can read ride.rider.plateNumber etc.,
+// same convention as the top-level current user), and rewrites the
+// snake_case ride fields to their camelCase page-facing names.
+function normalizeRide(apiRide) {
+  if (!apiRide) return null
+  return {
+    id: apiRide.id,
+    status: apiRide.status,
+    passenger: normalizeUser(apiRide.passenger),
+    rider: normalizeUser(apiRide.rider),
+    requestedRider: normalizeUser(apiRide.requested_rider),
+    pickupLat: apiRide.pickup_lat != null ? Number(apiRide.pickup_lat) : null,
+    pickupLng: apiRide.pickup_lng != null ? Number(apiRide.pickup_lng) : null,
+    pickupAddress: apiRide.pickup_address || '',
+    fare: apiRide.fare != null ? Number(apiRide.fare) : null,
+    tipAmount: apiRide.tip_amount != null ? Number(apiRide.tip_amount) : 0,
+    rating: apiRide.rating ?? null,
+    requestedAt: apiRide.requested_at,
+    acceptedAt: apiRide.accepted_at,
+    completedAt: apiRide.completed_at,
+    cancelledAt: apiRide.cancelled_at,
+  }
+}
+
+function normalizeNearbyRider(apiRider) {
+  return {
+    id: apiRider.id,
+    name: apiRider.name,
+    phone: apiRider.phone,
+    photo: apiRider.photo,
+    estate: apiRider.estate,
+    plateNumber: apiRider.plate_number,
+    lat: Number(apiRider.lat),
+    lng: Number(apiRider.lng),
+    updatedAt: apiRider.updated_at,
+  }
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [ready, setReady] = useState(false)
@@ -337,6 +376,83 @@ export function AuthProvider({ children }) {
     await api.delete(`/support/admin/threads/${threadId}/delete/`)
   }
 
+  // --- Rides (Book a ride) ------------------------------------------------
+  // Real requests against apps.rides -- not the old homepage preview, which
+  // never left the browser (simulated riders, localStorage location only).
+
+  // pickup: {lat, lng, address}. requestedRiderId is optional -- pass a
+  // specific rider's id (from listNearbyRiders()) to request them by name,
+  // or omit it to broadcast to every approved rider nearby.
+  async function requestRide({ pickupLat, pickupLng, pickupAddress, requestedRiderId } = {}) {
+    const body = {
+      pickup_lat: pickupLat,
+      pickup_lng: pickupLng,
+      pickup_address: pickupAddress || '',
+    }
+    if (requestedRiderId) body.requested_rider_id = requestedRiderId
+    const data = await api.post('/rides/request/', body)
+    return normalizeRide(data)
+  }
+
+  async function getRide(rideId) {
+    const data = await api.get(`/rides/${rideId}/`)
+    return normalizeRide(data)
+  }
+
+  async function listMyRides() {
+    const data = await api.get('/rides/mine/')
+    return unwrapList(data).results.map(normalizeRide)
+  }
+
+  // Rider only: broadcast requests plus anything requested specifically for
+  // this rider -- never a ride requested for someone else (the backend
+  // filters that out at the query level, not just in the UI).
+  async function listAvailableRides() {
+    const data = await api.get('/rides/available/')
+    return unwrapList(data).results.map(normalizeRide)
+  }
+
+  async function acceptRide(rideId) {
+    const data = await api.post(`/rides/${rideId}/accept/`)
+    return normalizeRide(data)
+  }
+
+  async function cancelRide(rideId) {
+    const data = await api.post(`/rides/${rideId}/cancel/`)
+    return normalizeRide(data)
+  }
+
+  async function completeRide(rideId, { rating, tipAmount } = {}) {
+    const body = {}
+    if (rating != null) body.rating = rating
+    if (tipAmount != null) body.tip_amount = tipAmount
+    const data = await api.post(`/rides/${rideId}/complete/`, body)
+    return normalizeRide(data)
+  }
+
+  // --- Locations (live GPS + "nearby riders") -----------------------------
+
+  async function upsertMyLocation(lat, lng, accuracy) {
+    const body = { lat, lng }
+    if (accuracy != null) body.accuracy = accuracy
+    await api.post('/locations/me/', body)
+  }
+
+  // Passenger only: approved, active riders who've shared a live location
+  // in the last 15 minutes -- for the "choose a rider" step of booking.
+  async function listNearbyRiders() {
+    const data = await api.get('/locations/riders/')
+    return unwrapList(data).results.map(normalizeNearbyRider)
+  }
+
+  // Rider only, and only while they have an active (accepted/enroute) ride
+  // with that passenger -- enforced server-side too, not just by hiding
+  // the button.
+  async function getPassengerLocation(passengerId) {
+    const data = await api.get(`/locations/${passengerId}/`)
+    return { lat: Number(data.lat), lng: Number(data.lng), updatedAt: data.updated_at }
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -361,6 +477,16 @@ export function AuthProvider({ children }) {
         downloadUserPdf,
         resetUserPassword,
         changePassword,
+        requestRide,
+        getRide,
+        listMyRides,
+        listAvailableRides,
+        acceptRide,
+        cancelRide,
+        completeRide,
+        upsertMyLocation,
+        listNearbyRiders,
+        getPassengerLocation,
         listNotifications,
         unreadNotificationCount,
         markNotificationRead,

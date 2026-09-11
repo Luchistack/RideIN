@@ -65,6 +65,11 @@ export default function Navbar() {
               <Button as={Link} to="/support" variant="ghost" size="sm">
                 Support
               </Button>
+              {user.role === 'passenger' && (
+                <Button as={Link} to="/book-ride" variant="primary" size="sm">
+                  Book a ride
+                </Button>
+              )}
               <Button variant="primary" size="sm" onClick={logout}>
                 Log out
               </Button>

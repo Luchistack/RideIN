@@ -10,6 +10,7 @@ import SignupRiderPage from './pages/SignupRiderPage.jsx'
 import DashboardPage from './pages/DashboardPage.jsx'
 import ProfilePage from './pages/ProfilePage.jsx'
 import SupportPage from './pages/SupportPage.jsx'
+import BookRidePage from './pages/BookRidePage.jsx'
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/support" element={<SupportPage />} />
+            <Route path="/book-ride" element={<BookRidePage />} />
           </Routes>
         </main>
         <Footer />
