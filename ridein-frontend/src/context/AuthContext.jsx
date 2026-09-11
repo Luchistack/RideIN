@@ -479,6 +479,7 @@ export function AuthProvider({ children }) {
       ride: typeof apiPayment.ride === 'object' ? normalizeRide(apiPayment.ride) : apiPayment.ride,
       amount: apiPayment.amount != null ? Number(apiPayment.amount) : null,
       tipAmount: apiPayment.tip_amount != null ? Number(apiPayment.tip_amount) : 0,
+      tipRecipient: apiPayment.tip_recipient || 'rider',
       bankReference: apiPayment.bank_reference || '',
       status: apiPayment.status,
       submittedAt: apiPayment.submitted_at,
@@ -490,10 +491,12 @@ export function AuthProvider({ children }) {
   // amount defaults to the ride's fare and tipAmount to 0 server-side if
   // left out -- but the passenger can type in exactly what they sent (fare
   // + any transfer tip), and bankReference is optional on top of that.
-  async function submitPayment(rideId, { amount, tipAmount, bankReference } = {}) {
+  // tipRecipient is 'rider' (default) or 'app' -- who a nonzero tip is for.
+  async function submitPayment(rideId, { amount, tipAmount, tipRecipient, bankReference } = {}) {
     const body = { ride: rideId }
     if (amount != null && amount !== '') body.amount = amount
     if (tipAmount != null && tipAmount !== '') body.tip_amount = tipAmount
+    if (tipRecipient) body.tip_recipient = tipRecipient
     if (bankReference) body.bank_reference = bankReference
     const data = await api.post('/payments/submit/', body)
     return normalizePayment(data)

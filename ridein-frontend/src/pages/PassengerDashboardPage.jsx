@@ -165,40 +165,57 @@ export default function PassengerDashboardPage() {
                 <Th>Payment status</Th>
                 <Th align="right">Fare</Th>
                 <Th align="right">Tip</Th>
+                <Th align="right">Total</Th>
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr>
-                  <Td colSpan={5} className="text-center text-ink-faint dark:text-ink-faint-dark">
+                  <Td colSpan={6} className="text-center text-ink-faint dark:text-ink-faint-dark">
                     Loading…
                   </Td>
                 </tr>
               )}
               {!loading && paymentHistory.length === 0 && (
                 <tr>
-                  <Td colSpan={5} className="text-center text-ink-faint dark:text-ink-faint-dark">
+                  <Td colSpan={6} className="text-center text-ink-faint dark:text-ink-faint-dark">
                     No payments yet.
                   </Td>
                 </tr>
               )}
-              {paymentHistory.map((entry) => (
-                <tr key={entry.id} className="border-b border-line last:border-0 dark:border-line-dark">
-                  <Td className="font-mono text-[12.5px] text-ink-faint dark:text-ink-faint-dark">
-                    {entry.submittedAt ? new Date(entry.submittedAt).toLocaleDateString() : '—'}
-                  </Td>
-                  <Td>{entry.ride?.rider?.name || '—'}</Td>
-                  <Td>
-                    <PaymentStatusPill status={entry.status} />
-                  </Td>
-                  <Td align="right" className="font-mono">
-                    {entry.amount != null ? formatNaira(entry.amount) : '—'}
-                  </Td>
-                  <Td align="right" className="font-mono">
-                    {entry.tipAmount ? formatNaira(entry.tipAmount) : '—'}
-                  </Td>
-                </tr>
-              ))}
+              {paymentHistory.map((entry) => {
+                const fare = entry.amount || 0
+                const tip = entry.tipAmount || 0
+                return (
+                  <tr key={entry.id} className="border-b border-line last:border-0 dark:border-line-dark">
+                    <Td className="font-mono text-[12.5px] text-ink-faint dark:text-ink-faint-dark">
+                      {entry.submittedAt ? new Date(entry.submittedAt).toLocaleDateString() : '—'}
+                    </Td>
+                    <Td>{entry.ride?.rider?.name || '—'}</Td>
+                    <Td>
+                      <PaymentStatusPill status={entry.status} />
+                    </Td>
+                    <Td align="right" className="font-mono">
+                      {entry.amount != null ? formatNaira(fare) : '—'}
+                    </Td>
+                    <Td align="right" className="font-mono">
+                      {tip ? (
+                        <>
+                          {formatNaira(tip)}
+                          <div className="text-[10.5px] font-sans font-normal text-ink-faint dark:text-ink-faint-dark">
+                            {entry.tipRecipient === 'app' ? 'to RideIN' : 'to rider'}
+                          </div>
+                        </>
+                      ) : (
+                        '—'
+                      )}
+                    </Td>
+                    <Td align="right" className="font-mono font-bold">
+                      {entry.amount != null ? formatNaira(fare + tip) : '—'}
+                    </Td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

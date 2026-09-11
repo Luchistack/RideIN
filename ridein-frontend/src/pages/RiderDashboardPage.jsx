@@ -65,17 +65,43 @@ function PaymentStatusNote({ payment }) {
       </p>
     )
   }
-  const amountText =
-    payment.amount != null
-      ? ` — ${formatNaira(payment.amount)}${payment.tipAmount ? ` + ${formatNaira(payment.tipAmount)} tip` : ''}`
-      : ''
-  const map = {
-    pending: [`Payment submitted${amountText} — waiting on an admin to confirm it.`, 'text-accent-deep dark:text-accent-light'],
-    confirmed: [`✓ Payment confirmed by an admin${amountText}.`, 'text-good dark:text-good-dark'],
-    failed: ['Payment marked as not paid — check with the passenger.', 'text-danger dark:text-danger-dark'],
-  }
-  const [text, cls] = map[payment.status] || [payment.status, '']
-  return <p className={`mb-3 text-[12.5px] font-semibold ${cls}`}>{text}</p>
+  const fare = payment.amount || 0
+  const tip = payment.tipAmount || 0
+  const tipForYou = tip > 0 && payment.tipRecipient !== 'app'
+  const total = fare + tip
+  const cls = {
+    pending: 'text-accent-deep dark:text-accent-light',
+    confirmed: 'text-good dark:text-good-dark',
+    failed: 'text-danger dark:text-danger-dark',
+  }[payment.status]
+  const statusLine = {
+    pending: 'Payment submitted — waiting on an admin to confirm it.',
+    confirmed: '✓ Payment confirmed by an admin.',
+    failed: 'Payment marked as not paid — check with the passenger.',
+  }[payment.status]
+
+  return (
+    <div className="mb-3">
+      <p className={`text-[12.5px] font-semibold ${cls}`}>{statusLine}</p>
+      {payment.status !== 'failed' && (
+        <p className="mt-1 text-[12px] text-ink-soft dark:text-ink-soft-dark">
+          Fare: <span className="font-mono font-semibold">{formatNaira(fare)}</span>
+          {tip > 0 && (
+            <>
+              {' · Tip: '}
+              <span className="font-mono font-semibold">{formatNaira(tip)}</span>
+              {' '}
+              <span className="text-[11px] text-ink-faint dark:text-ink-faint-dark">
+                ({tipForYou ? 'for you' : 'to RideIN'})
+              </span>
+            </>
+          )}
+          {' · Total: '}
+          <span className="font-mono font-semibold">{formatNaira(total)}</span>
+        </p>
+      )}
+    </div>
+  )
 }
 
 // Inline "rate the passenger" form for one completed ride the rider hasn't
@@ -482,40 +508,57 @@ export default function RiderDashboardPage() {
                 <Th>Payment status</Th>
                 <Th align="right">Fare</Th>
                 <Th align="right">Tip</Th>
+                <Th align="right">Total</Th>
               </tr>
             </thead>
             <tbody>
               {historyLoading && (
                 <tr>
-                  <Td colSpan={5} className="text-center text-ink-faint dark:text-ink-faint-dark">
+                  <Td colSpan={6} className="text-center text-ink-faint dark:text-ink-faint-dark">
                     Loading…
                   </Td>
                 </tr>
               )}
               {!historyLoading && paymentHistory.length === 0 && (
                 <tr>
-                  <Td colSpan={5} className="text-center text-ink-faint dark:text-ink-faint-dark">
+                  <Td colSpan={6} className="text-center text-ink-faint dark:text-ink-faint-dark">
                     No payments yet.
                   </Td>
                 </tr>
               )}
-              {paymentHistory.map((payment) => (
-                <tr key={payment.id} className="border-b border-line last:border-0 dark:border-line-dark">
-                  <Td className="font-mono text-[12.5px] text-ink-faint dark:text-ink-faint-dark">
-                    {payment.submittedAt ? new Date(payment.submittedAt).toLocaleDateString() : '—'}
-                  </Td>
-                  <Td>{payment.ride?.passenger?.name || '—'}</Td>
-                  <Td>
-                    <PaymentStatusPill status={payment.status} />
-                  </Td>
-                  <Td align="right" className="font-mono">
-                    {payment.amount != null ? formatNaira(payment.amount) : '—'}
-                  </Td>
-                  <Td align="right" className="font-mono">
-                    {payment.tipAmount ? formatNaira(payment.tipAmount) : '—'}
-                  </Td>
-                </tr>
-              ))}
+              {paymentHistory.map((payment) => {
+                const fare = payment.amount || 0
+                const tip = payment.tipAmount || 0
+                return (
+                  <tr key={payment.id} className="border-b border-line last:border-0 dark:border-line-dark">
+                    <Td className="font-mono text-[12.5px] text-ink-faint dark:text-ink-faint-dark">
+                      {payment.submittedAt ? new Date(payment.submittedAt).toLocaleDateString() : '—'}
+                    </Td>
+                    <Td>{payment.ride?.passenger?.name || '—'}</Td>
+                    <Td>
+                      <PaymentStatusPill status={payment.status} />
+                    </Td>
+                    <Td align="right" className="font-mono">
+                      {payment.amount != null ? formatNaira(fare) : '—'}
+                    </Td>
+                    <Td align="right" className="font-mono">
+                      {tip ? (
+                        <>
+                          {formatNaira(tip)}
+                          <div className="text-[10.5px] font-sans font-normal text-ink-faint dark:text-ink-faint-dark">
+                            {payment.tipRecipient === 'app' ? 'to RideIN' : 'for you'}
+                          </div>
+                        </>
+                      ) : (
+                        '—'
+                      )}
+                    </Td>
+                    <Td align="right" className="font-mono font-bold">
+                      {payment.amount != null ? formatNaira(fare + tip) : '—'}
+                    </Td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

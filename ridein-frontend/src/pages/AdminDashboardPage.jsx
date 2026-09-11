@@ -702,7 +702,7 @@ function PaymentsTab() {
       </div>
       {err && <p className="mb-3 text-[12.5px] font-semibold text-danger dark:text-danger-dark">{err}</p>}
       <div className="overflow-x-auto rounded-2xl border border-line dark:border-line-dark">
-        <table className="w-full min-w-[760px] border-collapse text-left text-[13.5px]">
+        <table className="w-full min-w-[920px] border-collapse text-left text-[13.5px]">
           <thead>
             <tr className="border-b border-line bg-surface-2 dark:border-line-dark dark:bg-surface-2-dark">
               <Th>Submitted</Th>
@@ -711,45 +711,62 @@ function PaymentsTab() {
               <Th>Reference</Th>
               <Th align="right">Amount</Th>
               <Th align="right">Tip</Th>
+              <Th align="right">Total</Th>
               <Th>Payment status</Th>
             </tr>
           </thead>
           <tbody>
             {loading && (
               <tr>
-                <Td colSpan={7} className="text-center text-ink-faint dark:text-ink-faint-dark">
+                <Td colSpan={8} className="text-center text-ink-faint dark:text-ink-faint-dark">
                   Loading…
                 </Td>
               </tr>
             )}
             {!loading && payments.length === 0 && (
               <tr>
-                <Td colSpan={7} className="text-center text-ink-faint dark:text-ink-faint-dark">
+                <Td colSpan={8} className="text-center text-ink-faint dark:text-ink-faint-dark">
                   No payments match.
                 </Td>
               </tr>
             )}
-            {payments.map((payment) => (
-              <tr key={payment.id} className="border-b border-line last:border-0 dark:border-line-dark">
-                <Td className="font-mono text-[12px] text-ink-faint dark:text-ink-faint-dark">
-                  {payment.submittedAt ? new Date(payment.submittedAt).toLocaleString() : '—'}
-                </Td>
-                <Td>{payment.ride?.passenger?.name || '—'}</Td>
-                <Td>{payment.ride?.rider?.name || '—'}</Td>
-                <Td className="max-w-[160px] truncate text-ink-faint dark:text-ink-faint-dark">
-                  {payment.bankReference || '—'}
-                </Td>
-                <Td align="right" className="font-mono">
-                  {payment.amount != null ? formatNaira(payment.amount) : '—'}
-                </Td>
-                <Td align="right" className="font-mono">
-                  {payment.tipAmount ? formatNaira(payment.tipAmount) : '—'}
-                </Td>
-                <Td>
-                  <PaymentStatusButtons payment={payment} onSetStatus={handleSetStatus} />
-                </Td>
-              </tr>
-            ))}
+            {payments.map((payment) => {
+              const fare = payment.amount || 0
+              const tip = payment.tipAmount || 0
+              return (
+                <tr key={payment.id} className="border-b border-line last:border-0 dark:border-line-dark">
+                  <Td className="font-mono text-[12px] text-ink-faint dark:text-ink-faint-dark">
+                    {payment.submittedAt ? new Date(payment.submittedAt).toLocaleString() : '—'}
+                  </Td>
+                  <Td>{payment.ride?.passenger?.name || '—'}</Td>
+                  <Td>{payment.ride?.rider?.name || '—'}</Td>
+                  <Td className="max-w-[220px] break-words text-ink-faint dark:text-ink-faint-dark">
+                    {payment.bankReference || '—'}
+                  </Td>
+                  <Td align="right" className="font-mono">
+                    {payment.amount != null ? formatNaira(fare) : '—'}
+                  </Td>
+                  <Td align="right" className="font-mono">
+                    {tip ? (
+                      <>
+                        {formatNaira(tip)}
+                        <div className="text-[10.5px] font-sans font-normal text-ink-faint dark:text-ink-faint-dark">
+                          → {payment.tipRecipient === 'app' ? 'RideIN' : 'rider'}
+                        </div>
+                      </>
+                    ) : (
+                      '—'
+                    )}
+                  </Td>
+                  <Td align="right" className="font-mono font-bold">
+                    {payment.amount != null ? formatNaira(fare + tip) : '—'}
+                  </Td>
+                  <Td>
+                    <PaymentStatusButtons payment={payment} onSetStatus={handleSetStatus} />
+                  </Td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
