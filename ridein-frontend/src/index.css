@@ -3,6 +3,16 @@
 @tailwind utilities;
 
 @layer base {
+  html,
+  body {
+    /* Nothing on the page should ever cause a sideways scrollbar — a
+       stray wide element used to make the whole layout feel "scattered"
+       on narrow screens. This is the safety net; individual sections
+       shouldn't rely on it. */
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
   h1,
   h2,
   h3 {
