@@ -49,7 +49,7 @@ export default function Navbar() {
 
   return (
     <div className="sticky top-0 z-50 border-b border-line bg-paper/90 backdrop-blur dark:border-line-dark dark:bg-paper-dark/90">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3.5 sm:px-7 sm:py-4">
+      <div className="mx-auto flex w-full max-w-[1680px] items-center justify-between gap-6 px-4 py-3.5 sm:px-7 sm:py-4 lg:px-10 xl:px-14">
         <Link to="/" className="flex-none">
           <Logo />
         </Link>
@@ -63,7 +63,7 @@ export default function Navbar() {
             inline — that's why the breakpoint differs by login state instead
             of using one fixed value that would overflow for one case or the
             other. */}
-        <ul className={!user ? 'hidden gap-6 lg:flex' : 'hidden gap-6 2xl:flex'}>
+        <ul className={!user ? 'hidden flex-1 justify-center gap-10 lg:flex' : 'hidden flex-1 justify-center gap-10 2xl:flex'}>
           {LINKS.map((link) => (
             <li key={link.href}>
               <a
@@ -76,7 +76,7 @@ export default function Navbar() {
           ))}
         </ul>
 
-        <div className={!user ? 'hidden flex-none items-center gap-2.5 lg:flex' : 'hidden flex-none items-center gap-2.5 2xl:flex'}>
+        <div className={!user ? 'hidden flex-none items-center gap-3 lg:flex' : 'hidden flex-none items-center gap-3 2xl:flex'}>
           <ThemeToggle />
           {!user && (
             <>

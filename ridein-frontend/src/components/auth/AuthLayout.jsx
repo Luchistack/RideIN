@@ -3,7 +3,12 @@ import Logo from '../ui/Logo.jsx'
 
 export default function AuthLayout({ title, subtitle, children, wide = false }) {
   return (
-    <div className="flex min-h-[calc(100vh-73px)] items-center justify-center px-6 py-14">
+    // flex-1 fills whatever vertical space `main` actually has left (viewport
+    // minus navbar minus footer) — it used to guess that with a fixed
+    // `calc(100vh-73px)`, which only accounted for the navbar's height, not
+    // the footer's too, so the page ended up taller than the viewport and
+    // pushed the footer below the fold instead of pinning it to the bottom.
+    <div className="flex flex-1 items-center justify-center px-6 py-14">
       <div className={`w-full ${wide ? 'max-w-xl' : 'max-w-md'}`}>
         <div className="mb-7 flex justify-center">
           <Link to="/">

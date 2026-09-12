@@ -101,7 +101,14 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-80 max-w-[90vw] overflow-hidden rounded-2xl border border-line bg-surface shadow-xl dark:border-line-dark dark:bg-surface-dark">
+        // On a narrow screen this is `fixed` and pinned to the viewport's own
+        // edges (inset-x-3) instead of being anchored to the bell button —
+        // the bell usually isn't the rightmost thing in the navbar (the
+        // hamburger button is further right), so an `absolute right-0`
+        // dropdown anchored to the bell was overshooting the actual screen
+        // edge and getting invisibly clipped. From sm up there's reliably
+        // enough room, so it reverts to the normal anchored dropdown.
+        <div className="fixed inset-x-3 top-16 z-50 overflow-hidden rounded-2xl border border-line bg-surface shadow-xl dark:border-line-dark dark:bg-surface-dark sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80 sm:max-w-[90vw]">
           <div className="flex items-center justify-between border-b border-line px-4 py-3 dark:border-line-dark">
             <span className="text-[13px] font-bold normal-case">Notifications</span>
             {items.some((n) => !n.is_read) && (

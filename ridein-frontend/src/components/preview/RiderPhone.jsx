@@ -70,8 +70,8 @@ export default function RiderPhone() {
   }
 
   return (
-    <div className="rounded-[34px] border border-line bg-surface p-3.5 shadow-soft dark:border-line-dark dark:bg-surface-dark">
-      <div className="relative flex min-h-[600px] flex-col overflow-hidden rounded-[22px] bg-paper dark:bg-paper-dark">
+    <div className="mx-auto w-full min-w-0 max-w-[340px] rounded-[34px] border border-line bg-surface p-3.5 shadow-soft dark:border-line-dark dark:bg-surface-dark">
+      <div className="relative flex min-h-[600px] min-w-0 flex-col overflow-hidden rounded-[22px] bg-paper dark:bg-paper-dark">
         <div className="absolute left-1/2 top-2 z-10 h-[18px] w-20 -translate-x-1/2 rounded-b-xl bg-ink/90 dark:bg-ink-dark/80" />
 
         <div className="flex items-center justify-between px-[18px] pb-3 pt-[26px]">

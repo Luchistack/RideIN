@@ -31,7 +31,7 @@ export default function AppPreview() {
               title="Choose who picks you up"
               lede="This is your own live request flow — tap a rider to see their rating and how far out they are."
             />
-            <div className="grid gap-11 lg:grid-cols-[340px_1fr]">
+            <div className="grid min-w-0 gap-11 lg:grid-cols-[340px_1fr]">
               <PassengerPhone />
               <PassengerCopy />
             </div>
@@ -45,7 +45,7 @@ export default function AppPreview() {
               title="Every passenger waiting, before you move"
               lede="This is your own live view — only you can see and accept requests sent to your account."
             />
-            <div className="grid gap-11 lg:grid-cols-[340px_1fr]">
+            <div className="grid min-w-0 gap-11 lg:grid-cols-[340px_1fr]">
               <RiderPhone />
               <RiderCopy />
             </div>

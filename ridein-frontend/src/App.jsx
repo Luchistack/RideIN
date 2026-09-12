@@ -15,9 +15,14 @@ import BookRidePage from './pages/BookRidePage.jsx'
 export default function App() {
   return (
     <AuthProvider>
-      <div className="min-h-screen bg-paper font-body text-ink antialiased dark:bg-paper-dark dark:text-ink-dark">
+      <div className="flex min-h-screen flex-col bg-paper font-body text-ink antialiased dark:bg-paper-dark dark:text-ink-dark">
         <Navbar />
-        <main>
+        {/* flex-1 is what pins the footer to the bottom of the viewport on
+            short pages (e.g. a fresh dashboard with little history yet) —
+            without it, the footer just sits directly under whatever content
+            happens to be there, which on a short page looks like it's
+            floating in the middle instead of anchored to the bottom. */}
+        <main className="flex flex-1 flex-col">
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
