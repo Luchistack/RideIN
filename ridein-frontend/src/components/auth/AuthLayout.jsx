@@ -3,12 +3,21 @@ import Logo from '../ui/Logo.jsx'
 
 export default function AuthLayout({ title, subtitle, children, wide = false }) {
   return (
-    // flex-1 fills whatever vertical space `main` actually has left (viewport
-    // minus navbar minus footer) — it used to guess that with a fixed
-    // `calc(100vh-73px)`, which only accounted for the navbar's height, not
-    // the footer's too, so the page ended up taller than the viewport and
-    // pushed the footer below the fold instead of pinning it to the bottom.
-    <div className="flex flex-1 items-center justify-center px-6 py-14">
+    // h-full fills whatever vertical space `main` actually has left (viewport
+    // minus navbar minus footer — `main` gets a real, definite height from
+    // its own flex-1 in App.jsx, which is what makes h-full here resolve to
+    // something meaningful). This used to be a fixed `calc(100vh-73px)`
+    // guess that only accounted for the navbar's height, not the footer's
+    // too, so the page ended up taller than the viewport and pushed the
+    // footer below the fold instead of pinning it to the bottom.
+    //
+    // Deliberately NOT `main { display: flex }` + `flex-1` here instead:
+    // that would make every page's root element a flex item of `main`, and
+    // any page whose content has an intrinsically wide element (a table, a
+    // row of chips, anything that doesn't wrap) would force that flex item
+    // wider than the viewport instead of shrinking to fit — the exact "page
+    // shifted off to one side" bug this file's history is trying to avoid.
+    <div className="flex h-full items-center justify-center px-6 py-14">
       <div className={`w-full ${wide ? 'max-w-xl' : 'max-w-md'}`}>
         <div className="mb-7 flex justify-center">
           <Link to="/">

@@ -22,7 +22,7 @@ export default function App() {
             without it, the footer just sits directly under whatever content
             happens to be there, which on a short page looks like it's
             floating in the middle instead of anchored to the bottom. */}
-        <main className="flex flex-1 flex-col">
+        <main className="flex-1">
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
