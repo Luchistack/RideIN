@@ -24,13 +24,13 @@ export default function LoginPage() {
       setError(result.error)
       return
     }
-    navigate(result.user.role === 'passenger' ? '/#app' : '/dashboard')
+    navigate('/dashboard')
   }
 
   function handleGoogle(profile) {
     const result = loginWithGoogleProfile(profile)
     if (result.ok) {
-      navigate(result.user.role === 'passenger' ? '/#app' : '/dashboard')
+      navigate('/dashboard')
       return
     }
     setError(result.error || "We don't have an account for that Google email yet — sign up first.")

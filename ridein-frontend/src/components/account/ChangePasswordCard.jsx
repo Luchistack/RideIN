@@ -53,12 +53,7 @@ export default function ChangePasswordCard() {
     <div className="mb-8 rounded-2xl border border-line bg-surface p-5 dark:border-line-dark dark:bg-surface-dark">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-bold normal-case">Password</h2>
-          <p className="mt-0.5 text-[12.5px] text-ink-soft dark:text-ink-soft-dark">
-            {success
-              ? 'Your password was changed successfully.'
-              : 'Set your own password — useful right after an admin resets it for you.'}
-          </p>
+          <h2 className="text-sm font-bold normal-case">Change password</h2>
         </div>
         {!open && (
           <button

@@ -27,7 +27,7 @@ export default function SupportRideInButton() {
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-1.5 rounded-full border border-line px-3.5 py-2 text-[12.5px] font-bold text-ink-soft hover:border-ink-faint hover:text-ink dark:border-line-dark dark:text-ink-soft-dark dark:hover:border-ink-faint-dark dark:hover:text-ink-dark"
       >
-        💚 Support RideIN
+        Support RideIN
       </button>
       {open && (
         <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-[280px] rounded-2xl border border-line bg-surface p-4 shadow-[0_20px_45px_-18px_rgba(0,0,0,0.5)] dark:border-line-dark dark:bg-surface-dark">
