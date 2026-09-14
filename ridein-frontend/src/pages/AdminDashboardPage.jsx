@@ -308,7 +308,7 @@ function RidersTab({ onStats }) {
       await fn()
       await load()
     } catch (e) {
-      setErr(e.message || 'That action failed — please try again.')
+      setErr(e.message || 'That action failed, please try again.')
     } finally {
       setBusyId(null)
     }
@@ -485,7 +485,7 @@ function PassengersTab({ onStats }) {
       await fn()
       await load()
     } catch (e) {
-      setErr(e.message || 'That action failed — please try again.')
+      setErr(e.message || 'That action failed, please try again.')
     } finally {
       setBusyId(null)
     }

@@ -202,7 +202,7 @@ export function AuthProvider({ children }) {
     return {
       ok: false,
       isNew: false,
-      error: "Google sign-in isn't connected to the live backend yet — please use email + password.",
+      error: "Google sign-in isn't connected to the live backend yet, please use email + password.",
     }
   }
 

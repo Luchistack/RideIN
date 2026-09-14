@@ -43,7 +43,7 @@ export default function ChangePasswordCard() {
       reset()
       setOpen(false)
     } catch (err) {
-      setError(err.message || 'Could not change your password — please try again.')
+      setError(err.message || 'Could not change your password, please try again.')
     } finally {
       setBusy(false)
     }

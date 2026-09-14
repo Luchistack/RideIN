@@ -10,7 +10,7 @@ import FareLine from '../ui/FareLine.jsx'
 import GoogleEstateMap from './GoogleEstateMap.jsx'
 import LocationShare from './LocationShare.jsx'
 
-const YOU = { position: MILLENNIUM_ESTATE.gate, label: 'You — Block 14 gate', icon: '●' }
+const YOU = { position: MILLENNIUM_ESTATE.gate, label: 'You, Block 14 gate', icon: '●' }
 
 // Ride flow, one stage at a time:
 // idle -> request (choose ride type) -> requesting -> enroute -> rating -> done
@@ -222,7 +222,7 @@ export default function PassengerPhone() {
                 </span>
               </div>
               <p className="mb-3 text-[11.5px] text-ink-faint dark:text-ink-faint-dark">
-                Pay {selected.name} by bank transfer once the ride is done — nothing to pay on arrival right now.
+                Pay {selected.name} by bank transfer once the ride is done, nothing to pay on arrival right now.
               </p>
               <button
                 type="button"

@@ -38,7 +38,7 @@ function AvailableRideCard({ ride, onAccept, busy }) {
         </div>
       </div>
       <div className="mb-3 rounded-xl bg-surface-2 px-3 py-2.5 text-[12.5px] text-ink-soft dark:bg-surface-2-dark dark:text-ink-soft-dark">
-        {ride.pickupAddress || 'Pickup shared as a live location — open the map to see it.'}
+        {ride.pickupAddress || 'Pickup shared as a live location, open the map to see it.'}
       </div>
       {ride.fare != null && (
         <div className="mb-3 font-mono text-[13px] font-bold text-brand dark:text-brand-light">
@@ -61,7 +61,7 @@ function PaymentStatusNote({ payment }) {
   if (!payment) {
     return (
       <p className="mb-3 text-[12px] text-ink-faint dark:text-ink-faint-dark">
-        No payment submitted yet — check with the passenger before you drive off.
+        No payment submitted yet, check with the passenger before you drive off.
       </p>
     )
   }
@@ -75,9 +75,9 @@ function PaymentStatusNote({ payment }) {
     failed: 'text-danger dark:text-danger-dark',
   }[payment.status]
   const statusLine = {
-    pending: 'Payment submitted — waiting on an admin to confirm it.',
+    pending: 'Payment submitted, waiting on an admin to confirm it.',
     confirmed: '✓ Payment confirmed by an admin.',
-    failed: 'Payment marked as not paid — check with the passenger.',
+    failed: 'Payment marked as not paid, check with the passenger.',
   }[payment.status]
 
   return (
@@ -213,7 +213,7 @@ function ActiveRideBanner({ ride, onCancel, cancelling, payment }) {
         </div>
         <PaymentStatusNote payment={payment} />
         <p className="mb-3 text-[12px] text-ink-faint dark:text-ink-faint-dark">
-          If the passenger isn't at the pickup spot, you're not required to wait — lateness fees are settled
+          If the passenger isn't at the pickup spot, you're not required to wait, lateness fees are settled
           directly between you and the passenger. The passenger marks the ride complete once you're done.
         </p>
         <button
@@ -413,7 +413,7 @@ export default function RiderDashboardPage() {
           )}
           {available.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-line px-4 py-6 text-center text-[13px] text-ink-faint dark:border-line-dark dark:text-ink-faint-dark">
-              No pending ride requests right now — this refreshes automatically.
+              No pending ride requests right now, this refreshes automatically.
             </p>
           ) : (
             <div className="flex gap-3.5 overflow-x-auto pb-1">
@@ -563,7 +563,7 @@ export default function RiderDashboardPage() {
           </table>
         </div>
         <p className="mt-3 text-[12px] text-ink-faint dark:text-ink-faint-dark">
-          Notice something wrong with a record? Contact estate management or RideIN support — riders can't edit or
+          Notice something wrong with a record? Contact estate management or RideIN support, riders can't edit or
           clear their own history, by design.
         </p>
       </section>

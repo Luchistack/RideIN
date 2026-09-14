@@ -134,7 +134,7 @@ export default function FaceVerificationStep({ onVerified }) {
             }}
             className="text-[12px] font-semibold text-ink-faint underline hover:text-ink-soft dark:text-ink-faint-dark dark:hover:text-ink-soft-dark"
           >
-            No camera available — skip for this demo
+            No camera available, skip for this demo
           </button>
         )}
       </div>

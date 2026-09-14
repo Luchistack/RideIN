@@ -42,7 +42,7 @@ export default function PassengerProfilePage() {
       return
     }
     if (file.size > MAX_PHOTO_BYTES) {
-      setError('That image is a bit large — please choose one under 3MB.')
+      setError('That image is a bit large, please choose one under 3MB.')
       return
     }
 
@@ -53,7 +53,7 @@ export default function PassengerProfilePage() {
     try {
       await updatePhoto(file)
     } catch (err) {
-      setError(err.message || 'Could not upload that photo — please try another image.')
+      setError(err.message || 'Could not upload that photo, please try another image.')
     } finally {
       setBusy(false)
     }
@@ -67,7 +67,7 @@ export default function PassengerProfilePage() {
         </p>
         <h1 className="mt-1 text-2xl font-extrabold normal-case sm:text-3xl">Your details</h1>
         <p className="mt-1 text-[13.5px] text-ink-soft dark:text-ink-soft-dark">
-          Your photo and password are the only things you can change yourself — for everything else, contact{' '}
+          Your photo and password are the only things you can change yourself, for everything else, contact{' '}
           <Link to="/support" className="font-semibold text-brand underline dark:text-brand-light">
             customer care
           </Link>
@@ -100,7 +100,7 @@ export default function PassengerProfilePage() {
       </div>
 
       <div className="mb-4 text-[12px] font-semibold uppercase tracking-wide text-ink-faint dark:text-ink-faint-dark">
-        Locked — can't be edited here
+        Locked, can't be edited here
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <ReadOnlyField label="Full name" value={user.name} />

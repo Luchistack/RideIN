@@ -2,8 +2,8 @@ import SectionHead from '../ui/SectionHead.jsx'
 
 const STEPS = [
   { n: 1, title: 'Open the map', body: 'See every verified rider currently online near your estate, with wait time and rating.' },
-  { n: 2, title: 'Choose your rider', body: "Pick who you want. If they're not free, choose another — no ride is forced on you." },
-  { n: 3, title: 'Pay by bank transfer', body: 'Transfer the fare straight to RideIN\'s account for that ride — no pre-funded balance, no cash changes hands.' },
+  { n: 2, title: 'Choose your rider', body: "Pick who you want. If they're not free, choose another, no ride is forced on you." },
+  { n: 3, title: 'Pay by bank transfer', body: 'Transfer the fare straight to RideIN\'s account for that ride, no pre-funded balance, no cash changes hands.' },
   { n: 4, title: 'Rate, and tip if you like', body: "Rate the ride and leave an optional cash tip. The rider's fare is remitted to them at day's end." },
 ]
 
@@ -14,7 +14,7 @@ export default function HowItWorks() {
         <SectionHead
           kicker="How it works"
           title="Four stops from gate to destination"
-          lede="The same route, every time — whether you're heading out or a rider is heading your way."
+          lede="The same route, every time, whether you're heading out or a rider is heading your way."
         />
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           {STEPS.map((step) => (

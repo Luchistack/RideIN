@@ -34,7 +34,7 @@ export default function SupportRideInButton() {
           <div className="mb-2 text-[13px] font-bold normal-case">Enjoying RideIN?</div>
           <p className="mb-3 text-[12px] leading-relaxed text-ink-soft dark:text-ink-soft-dark">
             You can support the app directly by sending whatever you like to the account below.{' '}
-            <b>Completely optional</b> — this is separate from paying for a ride.
+            <b>Completely optional</b>, this is separate from paying for a ride.
           </p>
           <div className="rounded-lg bg-surface-2 px-3 py-2.5 font-mono text-[13px] dark:bg-surface-2-dark">
             {PAYMENT_ACCOUNT.bank} · {PAYMENT_ACCOUNT.name} · {PAYMENT_ACCOUNT.number}

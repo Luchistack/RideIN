@@ -17,7 +17,7 @@ export default function EstateSignup() {
           </h2>
           <p className="max-w-[46ch] text-ink-soft dark:text-ink-soft-dark">
             RideIN started at Millennium Estate. Any estate can apply to bring their own keke riders onto the same
-            system — their own riders, their own fares, one shared standard for safety and payment.
+            system, their own riders, their own fares, one shared standard for safety and payment.
           </p>
           <div className="mt-6 flex flex-col gap-3.5">
             {ESTATES.map((estate) => (
@@ -53,7 +53,7 @@ export default function EstateSignup() {
         <div className="rounded-2xl border border-line bg-surface p-7 shadow-soft dark:border-line-dark dark:bg-surface-dark">
           <h3 className="mb-1.5 text-lg font-bold normal-case">Apply to bring RideIN to your estate</h3>
           <p className="mb-5 text-[13.5px] text-ink-soft dark:text-ink-soft-dark">
-            Estate management fills in a short application with full details — we review it and call or email you
+            Estate management fills in a short application with full details, we review it and call or email you
             back with a decision.
           </p>
 

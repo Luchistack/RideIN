@@ -115,7 +115,7 @@ export default function SignupPassengerPage() {
       {step === 2 && (
         <div>
           <p className="mb-4 text-[13.5px] text-ink-soft dark:text-ink-soft-dark">
-            RideIN has no pre-funded wallet — you pay by direct bank transfer, once per completed ride, straight to
+            RideIN has no pre-funded wallet, you pay by direct bank transfer, once per completed ride, straight to
             RideIN's account. There's nothing to fund now.
           </p>
           <div className="mb-5 rounded-xl border border-line bg-paper p-4 text-[12.5px] dark:border-line-dark dark:bg-paper-dark">
@@ -124,7 +124,7 @@ export default function SignupPassengerPage() {
           </div>
           {error && <p className="mb-4 text-[12.5px] font-semibold text-danger dark:text-danger-dark">{error}</p>}
           <p className="mb-3 text-[12px] text-ink-faint dark:text-ink-faint-dark">
-            Make sure to fill in the right details without mistakes — your inputs cannot be changed later.
+            Make sure to fill in the right details without mistakes, your inputs cannot be changed later.
           </p>
           <button
             type="button"
@@ -132,7 +132,7 @@ export default function SignupPassengerPage() {
             disabled={submitting}
             className="w-full rounded-full bg-brand py-3 text-sm font-bold text-white hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {submitting ? 'Creating your account…' : "Got it — finish"}
+            {submitting ? 'Creating your account…' : "Got it, finish"}
           </button>
         </div>
       )}

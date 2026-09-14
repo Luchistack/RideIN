@@ -44,7 +44,7 @@ export default function RiderProfilePage() {
       return
     }
     if (file.size > MAX_PHOTO_BYTES) {
-      setError('That image is a bit large — please choose one under 3MB.')
+      setError('That image is a bit large, please choose one under 3MB.')
       return
     }
 
@@ -55,7 +55,7 @@ export default function RiderProfilePage() {
     try {
       await updatePhoto(file)
     } catch (err) {
-      setError(err.message || 'Could not upload that photo — please try another image.')
+      setError(err.message || 'Could not upload that photo, please try another image.')
     } finally {
       setBusy(false)
     }
@@ -75,7 +75,7 @@ export default function RiderProfilePage() {
       await appealDecline()
       setJustAppealed(true)
     } catch (err) {
-      setError(err.message || 'Could not submit your appeal — please try again.')
+      setError(err.message || 'Could not submit your appeal, please try again.')
     } finally {
       setAppealing(false)
     }
@@ -90,7 +90,7 @@ export default function RiderProfilePage() {
         <h1 className="mt-1 text-2xl font-extrabold normal-case sm:text-3xl">Your details</h1>
         <p className="mt-1 text-[13.5px] text-ink-soft dark:text-ink-soft-dark">
           Everything below is what you gave RideIN when you applied. Your photo and password are the only things
-          you can change yourself — for everything else, contact{' '}
+          you can change yourself, for everything else, contact{' '}
           <Link to="/support" className="font-semibold text-brand underline dark:text-brand-light">
             customer care
           </Link>{' '}
@@ -146,7 +146,7 @@ export default function RiderProfilePage() {
             )}
             {user.status === 'declined' && (user.appealRequested || justAppealed) && (
               <span className="text-[12.5px] font-semibold text-ink-soft dark:text-ink-soft-dark">
-                Appeal received — an admin will reach out to you.
+                Appeal received, an admin will reach out to you.
               </span>
             )}
           </div>
@@ -155,7 +155,7 @@ export default function RiderProfilePage() {
       </div>
 
       <div className="mb-4 text-[12px] font-semibold uppercase tracking-wide text-ink-faint dark:text-ink-faint-dark">
-        Locked — can't be edited here
+        Locked, can't be edited here
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <ReadOnlyField label="Full name" value={user.name} />
@@ -171,7 +171,7 @@ export default function RiderProfilePage() {
         <ReadOnlyField label="Account number" value={maskedAccount} />
       </div>
       <p className="mt-5 text-[12px] text-ink-faint dark:text-ink-faint-dark">
-        Spotted a mistake in any of the details above? Riders can't edit these themselves, by design — message{' '}
+        Spotted a mistake in any of the details above? Riders can't edit these themselves, by design, message{' '}
         <Link to="/support" className="font-semibold underline">
           customer care
         </Link>{' '}

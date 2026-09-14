@@ -33,7 +33,7 @@ export default function LoginPage() {
       navigate('/dashboard')
       return
     }
-    setError(result.error || "We don't have an account for that Google email yet — sign up first.")
+    setError(result.error || "We don't have an account for that Google email yet, sign up first.")
   }
 
   return (

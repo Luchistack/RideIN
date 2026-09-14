@@ -179,7 +179,7 @@ export default function SignupRiderPage() {
       {step === 3 && (
         <form onSubmit={next}>
           <p className="mb-4 text-[13px] text-ink-soft dark:text-ink-soft-dark">
-            A guarantor vouches for you — someone the estate can reach if needed.
+            A guarantor vouches for you, someone the estate can reach if needed.
           </p>
           <FormField id="r-g-name" label="Guarantor's full name" required placeholder="e.g. Grace Obi" value={form.guarantorName} onChange={set('guarantorName')} />
           <FormField id="r-g-phone" label="Guarantor's phone number" required type="tel" placeholder="e.g. 0803 000 0000" value={form.guarantorPhone} onChange={set('guarantorPhone')} />
@@ -223,7 +223,7 @@ export default function SignupRiderPage() {
         <div>
           <FaceVerificationStep onVerified={handleVerified} />
           <p className="mt-4 text-center text-[12px] text-ink-faint dark:text-ink-faint-dark">
-            Make sure to fill in the right details without mistakes — your inputs cannot be changed later.
+            Make sure to fill in the right details without mistakes, your inputs cannot be changed later.
           </p>
           <div className="mt-3 flex gap-2.5">
             <button type="button" onClick={back} className="flex-1 rounded-full border border-line py-3 text-sm font-bold hover:border-ink-faint dark:border-line-dark dark:hover:border-ink-faint-dark">

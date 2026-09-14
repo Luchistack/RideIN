@@ -220,7 +220,7 @@ export default function PassengerDashboardPage() {
           </table>
         </div>
         <p className="mt-3 text-[12px] text-ink-faint dark:text-ink-faint-dark">
-          Notice something wrong with a record? Contact RideIN support — passengers can't edit or clear their own
+          Notice something wrong with a record? Contact RideIN support, passengers can't edit or clear their own
           history, by design.
         </p>
       </section>

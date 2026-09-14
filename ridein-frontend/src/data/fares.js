@@ -14,7 +14,7 @@ export const FARES = {
     key: 'chatter',
     label: 'Chatter',
     badge: 'Private, full keke',
-    description: 'The whole keke to yourself or your group — no stops for other passengers.',
+    description: 'The whole keke to yourself or your group, no stops for other passengers.',
     riderFare: 1200,
     serviceFee: 300,
     total: 1500,

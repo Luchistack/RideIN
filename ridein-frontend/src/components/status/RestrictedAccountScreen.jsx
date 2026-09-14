@@ -21,7 +21,7 @@ export default function RestrictedAccountScreen({ status }) {
         {blocked ? 'Your account has been blocked' : 'Your account has been suspended'}
       </h1>
       <p className="mt-3 text-[14.5px] leading-relaxed text-ink-soft dark:text-ink-soft-dark">
-        Your access to RideIN has been restricted. Please contact an admin directly for details — in-app messaging
+        Your access to RideIN has been restricted. Please contact an admin directly for details, in-app messaging
         isn't available while your account is restricted.
       </p>
       <div className="mt-6">

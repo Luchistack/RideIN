@@ -5,6 +5,7 @@ import { MILLENNIUM_ESTATE } from '../data/estate.js'
 import { haversineMeters, formatDistance, formatEta } from '../lib/distance.js'
 import { FARES, PAYMENT_ACCOUNT, formatNaira } from '../data/fares.js'
 import Avatar from '../components/ui/Avatar.jsx'
+import LocationPickerMap from '../components/ui/LocationPickerMap.jsx'
 
 const POLL_MS = 5000
 const RIDERS_POLL_MS = 10000
@@ -24,7 +25,7 @@ function PaymentBox({ ride, payment, onSubmit, submitting, error }) {
     return (
       <div className="mb-4 rounded-xl border border-good/30 bg-good/10 px-3.5 py-3 text-[12.5px] font-semibold text-good dark:border-good-dark/30 dark:bg-good-dark/10 dark:text-good-dark">
         ✓ Payment confirmed by an admin
-        {payment.amount != null && ` — ${formatNaira(payment.amount)}`}
+        {payment.amount != null && `, ${formatNaira(payment.amount)}`}
         {tipSuffix}.
       </div>
     )
@@ -34,7 +35,7 @@ function PaymentBox({ ride, payment, onSubmit, submitting, error }) {
     return (
       <div className="mb-4 rounded-xl border border-accent/30 bg-accent-tint px-3.5 py-3 text-[12.5px] text-accent-deep dark:border-accent/20 dark:bg-accent-tint-dark dark:text-accent-light">
         <b>
-          Payment submitted{payment.amount != null && ` — ${formatNaira(payment.amount)}`}
+          Payment submitted{payment.amount != null && `, ${formatNaira(payment.amount)}`}
           {tipSuffix}.
         </b>{' '}
         An admin will confirm it shortly. Show your rider the receipt before you leave.
@@ -103,7 +104,7 @@ function PaymentBox({ ride, payment, onSubmit, submitting, error }) {
         {submitting ? 'Submitting…' : "I've paid"}
       </button>
       <p className="mt-2 text-[11.5px] text-ink-faint dark:text-ink-faint-dark">
-        Show your rider the receipt before you leave — an admin still confirms it here.
+        Show your rider the receipt before you leave, an admin still confirms it here.
       </p>
     </div>
   )
@@ -113,7 +114,7 @@ function LatenessNote() {
   return (
     <div className="rounded-xl border border-accent/30 bg-accent-tint px-3.5 py-3 text-[12.5px] leading-relaxed text-accent-deep dark:border-accent/20 dark:bg-accent-tint-dark dark:text-accent-light">
       <b>Stand at your pickup spot.</b> Lateness attracts an extra fee of {formatNaira(LATENESS_FEE)}, settled
-      directly with your rider. There's no waiting for pickup — if you're not there when the rider arrives, they
+      directly with your rider. There's no waiting for pickup, if you're not there when the rider arrives, they
       may drive off.
     </div>
   )
@@ -152,7 +153,7 @@ function RiderCard({ rider, distanceMeters, selected, onSelect, busy }) {
             : 'border border-line hover:border-ink-faint dark:border-line-dark dark:hover:border-ink-faint-dark'
         }`}
       >
-        {selected ? 'Selected — request them' : 'Request this rider'}
+        {selected ? 'Selected, request them' : 'Request this rider'}
       </button>
     </div>
   )
@@ -187,6 +188,7 @@ export default function BookRidePage() {
   const [locateError, setLocateError] = useState('')
   const [houseNumber, setHouseNumber] = useState('')
   const [street, setStreet] = useState('')
+  const [pinCoords, setPinCoords] = useState(null) // map-picked coords for manual mode
   const [riders, setRiders] = useState([])
   const [selectedRiderId, setSelectedRiderId] = useState(null)
   const [submitting, setSubmitting] = useState(false)
@@ -315,9 +317,8 @@ export default function BookRidePage() {
 
   function pickupCoords() {
     if (pickupMode === 'live' && liveCoords) return { lat: liveCoords.lat, lng: liveCoords.lng }
-    // Manual address entry has no geocoding available (no Google Maps key
-    // configured in this deployment) -- the estate center stands in for the
-    // pin, while the typed address is what the rider actually reads.
+    if (pickupMode === 'manual' && pinCoords) return pinCoords
+    // Fallback only if the map picker hasn't been touched yet.
     return { lat: MILLENNIUM_ESTATE.center.lat, lng: MILLENNIUM_ESTATE.center.lng }
   }
 
@@ -347,7 +348,7 @@ export default function BookRidePage() {
       })
       setActiveRide(ride)
     } catch (err) {
-      setSubmitError(err.message || 'Could not request a ride — please try again.')
+      setSubmitError(err.message || 'Could not request a ride, please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -399,7 +400,7 @@ export default function BookRidePage() {
       })
       setPayment(created)
     } catch (err) {
-      setPaymentError(err.message || 'Could not submit that — please try again.')
+      setPaymentError(err.message || 'Could not submit that, please try again.')
     } finally {
       setPaymentSubmitting(false)
     }
@@ -432,7 +433,7 @@ export default function BookRidePage() {
         </p>
         <h1 className="mt-1 text-2xl font-extrabold normal-case sm:text-3xl">Where should your rider find you?</h1>
         <p className="mt-1 text-[13.5px] text-ink-soft dark:text-ink-soft-dark">
-          Share your live location, or type your pickup spot manually — then choose any available rider, or send it
+          Share your live location, or type your pickup spot manually, then choose any available rider, or send it
           out to everyone nearby.
         </p>
       </div>
@@ -525,7 +526,7 @@ export default function BookRidePage() {
               <div className="mb-4">
                 {liveCoords ? (
                   <div className="rounded-xl border border-good/30 bg-good/10 px-3.5 py-3 text-[12.5px] font-semibold text-good dark:border-good-dark/30 dark:bg-good-dark/10 dark:text-good-dark">
-                    ✓ Location shared — riders will see exactly where you're standing.
+                    ✓ Location shared, riders will see exactly where you're standing.
                   </div>
                 ) : (
                   <button
@@ -565,6 +566,16 @@ export default function BookRidePage() {
                     className="w-full rounded-[9px] border border-line bg-paper px-3.5 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-brand dark:border-line-dark dark:bg-paper-dark dark:text-ink-dark"
                   />
                 </div>
+                <div className="sm:col-span-2">
+                  <label className="mb-1.5 block text-[12.5px] font-semibold text-ink-soft dark:text-ink-soft-dark">
+                    Pin your exact spot
+                  </label>
+                  <LocationPickerMap
+                    center={MILLENNIUM_ESTATE.center}
+                    value={pinCoords || MILLENNIUM_ESTATE.center}
+                    onChange={setPinCoords}
+                  />
+                </div>
               </div>
             )}
 
@@ -581,7 +592,7 @@ export default function BookRidePage() {
               </div>
               {sortedRiders.length === 0 ? (
                 <p className="rounded-xl border border-dashed border-line px-3.5 py-4 text-center text-[12.5px] text-ink-faint dark:border-line-dark dark:text-ink-faint-dark">
-                  No riders are currently sharing their location. You can still request a ride — it'll go out to the
+                  No riders are currently sharing their location. You can still request a ride, it'll go out to the
                   next rider who comes online.
                 </p>
               ) : (
@@ -737,7 +748,7 @@ function ActiveRideCard({
         {isDone && (
           <p className="mb-4 text-[13px] text-ink-soft dark:text-ink-soft-dark">
             {payment?.status === 'confirmed'
-              ? 'Payment confirmed — nothing else owed.'
+              ? 'Payment confirmed, nothing else owed.'
               : `Pay ${ride.rider?.name || 'your rider'} by bank transfer to close this out, if you haven't already.`}
           </p>
         )}

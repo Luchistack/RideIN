@@ -29,7 +29,7 @@ export default function AppPreview() {
             <SectionHead
               kicker="Your app"
               title="Choose who picks you up"
-              lede="This is your own live request flow — tap a rider to see their rating and how far out they are."
+              lede="This is your own live request flow, tap a rider to see their rating and how far out they are."
             />
             <div className="grid min-w-0 gap-11 lg:grid-cols-[340px_1fr]">
               <PassengerPhone />
@@ -43,7 +43,7 @@ export default function AppPreview() {
             <SectionHead
               kicker="Your app"
               title="Every passenger waiting, before you move"
-              lede="This is your own live view — only you can see and accept requests sent to your account."
+              lede="This is your own live view, only you can see and accept requests sent to your account."
             />
             <div className="grid min-w-0 gap-11 lg:grid-cols-[340px_1fr]">
               <RiderPhone />
@@ -57,7 +57,7 @@ export default function AppPreview() {
             <SectionHead
               kicker="How it works"
               title="The same app, two sides of the road"
-              lede="Log in as a passenger to request a ride, or as a rider to see who's waiting — this preview is just a taste of both, not something you can click through."
+              lede="Log in as a passenger to request a ride, or as a rider to see who's waiting, this preview is just a taste of both, not something you can click through."
             />
             <AnimatedPhoneShowcase />
             <div className="mt-8 grid gap-11 lg:grid-cols-2">
@@ -106,16 +106,16 @@ function FeatureList({ items }) {
 function PassengerCopy({ compact = false }) {
   return (
     <div className={compact ? '' : 'pt-1.5'}>
-      <h3 className="text-[22px] font-extrabold normal-case">Choose who picks you up — always.</h3>
+      <h3 className="text-[22px] font-extrabold normal-case">Choose who picks you up, always.</h3>
       <p className="mt-2.5 max-w-[44ch] text-ink-soft dark:text-ink-soft-dark">
         Tap any rider on the map to see their rating and how far out they are. If they can't take the ride, close
-        the sheet and pick someone else — RideIN never auto-assigns a rider you didn't choose.
+        the sheet and pick someone else, RideIN never auto-assigns a rider you didn't choose.
       </p>
       <FeatureList
         items={[
-          { icon: '📍', title: 'Exact waiting spot', body: "Your pin is set to where you're standing, so the rider drives straight to you — not a guess." },
-          { icon: '💳', title: 'Bank transfer, not cash', body: 'Pay each ride by direct bank transfer to RideIN — no pre-funded balance, and no change ever has to happen at the roadside.' },
-          { icon: '⭐', title: 'Rate every ride', body: 'Your rating helps other passengers choose well — and tipping in cash is always optional, never expected.' },
+          { icon: '📍', title: 'Exact waiting spot', body: "Your pin is set to where you're standing, so the rider drives straight to you, not a guess." },
+          { icon: '💳', title: 'Bank transfer, not cash', body: 'Pay each ride by direct bank transfer to RideIN, no pre-funded balance, and no change ever has to happen at the roadside.' },
+          { icon: '⭐', title: 'Rate every ride', body: 'Your rating helps other passengers choose well, and tipping in cash is always optional, never expected.' },
         ]}
       />
     </div>
@@ -133,8 +133,8 @@ function RiderCopy({ compact = false }) {
       <FeatureList
         items={[
           { icon: '🛡️', title: "Verified before they're online", body: 'Every rider is estate-checked and ID-verified before their account can go live.' },
-          { icon: '🧾', title: 'Your fare, remitted in full', body: "RideIN's service fee is never taken from your fare — you keep ₦300 of every pickup and ₦1,200 of every chatter." },
-          { icon: '🪙', title: 'Tips stay cash, stay yours', body: "The only cash in RideIN is a passenger's tip — it's never split with the platform." },
+          { icon: '🧾', title: 'Your fare, remitted in full', body: "RideIN's service fee is never taken from your fare, you keep ₦300 of every pickup and ₦1,200 of every chatter." },
+          { icon: '🪙', title: 'Tips stay cash, stay yours', body: "The only cash in RideIN is a passenger's tip, it's never split with the platform." },
         ]}
       />
     </div>

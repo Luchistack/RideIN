@@ -12,7 +12,7 @@ const OPTIONS = [
     to: '/signup/rider',
     icon: '🛺',
     title: 'I want to ride and earn',
-    body: 'Apply as a verified keke rider — plate, estate, guarantor and payout details required.',
+    body: 'Apply as a verified keke rider, plate, estate, guarantor and payout details required.',
   },
 ]
 

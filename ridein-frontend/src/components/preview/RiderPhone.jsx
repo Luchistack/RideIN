@@ -161,7 +161,7 @@ export default function RiderPhone() {
                 Accept ride
               </button>
               <p className="mt-2 text-center text-[11.5px] text-ink-faint dark:text-ink-faint-dark">
-                Already paid by bank transfer to RideIN — collect nothing from the passenger.
+                Already paid by bank transfer to RideIN, collect nothing from the passenger.
               </p>
             </>
           )}

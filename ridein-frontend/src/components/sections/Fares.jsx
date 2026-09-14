@@ -8,7 +8,7 @@ export default function Fares() {
         <SectionHead
           kicker="Transparent fares"
           title="One price. Always shown before you ride."
-          lede="RideIN doesn't mark up the rider's fare — it adds one visible service fee on top, so riders always get their full rate."
+          lede="RideIN doesn't mark up the rider's fare, it adds one visible service fee on top, so riders always get their full rate."
         />
         <div className="grid gap-6 md:grid-cols-2">
           {Object.values(FARES).map((fare) => (

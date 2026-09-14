@@ -21,7 +21,7 @@ export default function RiderUnderReviewScreen({ status }) {
       await appealDecline()
       setJustAppealed(true)
     } catch (err) {
-      setAppealError(err.message || 'Could not submit your appeal — please try again.')
+      setAppealError(err.message || 'Could not submit your appeal, please try again.')
     } finally {
       setAppealing(false)
     }
@@ -53,7 +53,7 @@ export default function RiderUnderReviewScreen({ status }) {
         <>
           <h1 className="text-2xl font-extrabold normal-case sm:text-3xl">Your application is under review</h1>
           <p className="mt-3 text-[14.5px] leading-relaxed text-ink-soft dark:text-ink-soft-dark">
-            Estate management is looking over your details. This usually takes about an hour — check back here
+            Estate management is looking over your details. This usually takes about an hour, check back here
             shortly, and you'll also see a notification in the bell above the moment there's an update.
           </p>
         </>
@@ -63,7 +63,7 @@ export default function RiderUnderReviewScreen({ status }) {
         <>
           <h1 className="text-2xl font-extrabold normal-case sm:text-3xl">Your application was declined</h1>
           <p className="mt-3 text-[14.5px] leading-relaxed text-ink-soft dark:text-ink-soft-dark">
-            Your details are still on record — nothing was deleted. If you think this was a mistake, or something's
+            Your details are still on record, nothing was deleted. If you think this was a mistake, or something's
             changed, you can appeal below and an admin will reach out to you personally.
           </p>
 
@@ -73,7 +73,7 @@ export default function RiderUnderReviewScreen({ status }) {
 
           {alreadyAppealed ? (
             <p className="mt-6 rounded-xl border border-line bg-surface-2 px-4 py-3 text-[13px] font-semibold text-ink-soft dark:border-line-dark dark:bg-surface-2-dark dark:text-ink-soft-dark">
-              Appeal received — an admin will reach out to you directly. No need to submit it again.
+              Appeal received, an admin will reach out to you directly. No need to submit it again.
             </p>
           ) : (
             <button

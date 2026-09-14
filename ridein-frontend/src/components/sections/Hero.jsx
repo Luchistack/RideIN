@@ -58,7 +58,7 @@ export default function Hero() {
             <span className="text-accent">made easy.</span>
           </h1>
           <p className="mt-5 max-w-[46ch] text-lg leading-relaxed text-white/85">
-            RideIN is the ride ordering and management system built for estates — starting with keke. See who's
+            RideIN is the ride ordering and management system built for estates, starting with keke. See who's
             available, choose your rider, pay by bank transfer straight to RideIN, and rate the ride. No cash, no
             guessing, no waiting at the gate.
           </p>

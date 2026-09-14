@@ -118,12 +118,12 @@ export default function GoogleEstateMap({ center, zoom = 16, you, markers, varia
 
       {!hasKey && (
         <div className="absolute bottom-2 left-2 right-2 rounded-lg bg-surface/95 px-2.5 py-1.5 text-[10.5px] font-medium text-ink-faint shadow-soft dark:bg-surface-dark/95 dark:text-ink-faint-dark">
-          Preview map — add <code className="font-mono">VITE_GOOGLE_MAPS_API_KEY</code> to show the live map.
+          Preview map, add <code className="font-mono">VITE_GOOGLE_MAPS_API_KEY</code> to show the live map.
         </div>
       )}
       {hasKey && loadError && (
         <div className="absolute bottom-2 left-2 right-2 rounded-lg bg-surface/95 px-2.5 py-1.5 text-[10.5px] font-medium text-danger shadow-soft dark:bg-surface-dark/95 dark:text-danger-dark">
-          Couldn't load Google Maps — check that your API key is valid and Maps JavaScript API is enabled.
+          Couldn't load Google Maps, check that your API key is valid and Maps JavaScript API is enabled.
         </div>
       )}
     </div>

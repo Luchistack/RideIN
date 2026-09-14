@@ -62,7 +62,7 @@ export default function SupportPage() {
       setMessages((prev) => [...prev, message])
       setDraft('')
     } catch (err) {
-      setError(err.message || 'Could not send that message — please try again.')
+      setError(err.message || 'Could not send that message, please try again.')
     } finally {
       setSending(false)
     }
@@ -76,7 +76,7 @@ export default function SupportPage() {
         </p>
         <h1 className="mt-1 text-2xl font-extrabold normal-case sm:text-3xl">Chat with RideIN</h1>
         <p className="mt-1 text-[13.5px] text-ink-soft dark:text-ink-soft-dark">
-          Wrong detail on your profile, a payment question, a safety concern — message us here, whether you're a
+          Wrong detail on your profile, a payment question, a safety concern, message us here, whether you're a
           rider or a passenger. An admin will reply here personally.
         </p>
       </div>
@@ -86,7 +86,7 @@ export default function SupportPage() {
           {loading && <p className="mt-8 text-center text-[13px] text-ink-faint dark:text-ink-faint-dark">Loading…</p>}
           {!loading && messages.length === 0 && (
             <p className="mt-8 text-center text-[13px] text-ink-faint dark:text-ink-faint-dark">
-              No messages yet — say hello below and RideIN's team will reply here.
+              No messages yet, say hello below and RideIN's team will reply here.
             </p>
           )}
           {messages.map((m) => (
