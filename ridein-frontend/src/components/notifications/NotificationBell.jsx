@@ -26,13 +26,26 @@ export default function NotificationBell() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(false)
   const rootRef = useRef(null)
+  const audioRef = useRef(null)
+  const prevCountRef = useRef(null) // null until the first poll completes
 
   useEffect(() => {
     if (!user) return
     let cancelled = false
     async function poll() {
       const c = await unreadNotificationCount()
-      if (!cancelled) setCount(c)
+      if (cancelled) return
+      // Only ring the alert sound when the unread count actually goes up --
+      // never on the very first poll (that's just establishing a baseline,
+      // not a new notification) and never on a poll that finds nothing new.
+      if (prevCountRef.current !== null && c > prevCountRef.current) {
+        audioRef.current?.play().catch(() => {
+          // Autoplay can be blocked before the user has interacted with the
+          // page at all in this session; harmless to skip in that case.
+        })
+      }
+      prevCountRef.current = c
+      setCount(c)
     }
     poll()
     const id = setInterval(poll, POLL_MS)
@@ -80,6 +93,26 @@ export default function NotificationBell() {
   }
 
   if (!user) return null
+
+  return (
+    <>
+      <audio ref={audioRef} src="/sounds/ride-notification.mp3" preload="auto" />
+      <NotificationBellInner
+        open={open}
+        setOpen={setOpen}
+        count={count}
+        items={items}
+        loading={loading}
+        rootRef={rootRef}
+        toggleOpen={toggleOpen}
+        handleItemClick={handleItemClick}
+        handleMarkAllRead={handleMarkAllRead}
+      />
+    </>
+  )
+}
+
+function NotificationBellInner({ open, setOpen, count, items, loading, rootRef, toggleOpen, handleItemClick, handleMarkAllRead }) {
 
   return (
     <div className="relative" ref={rootRef}>
