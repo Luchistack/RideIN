@@ -51,7 +51,7 @@ export default function FaceVerificationStep({ onVerified }) {
     setStatus('verifying')
     setTimeout(() => {
       setStatus('done')
-      onVerified(true)
+      onVerified(true, snapshot)
     }, 1600)
   }
 
@@ -124,17 +124,17 @@ export default function FaceVerificationStep({ onVerified }) {
           <p className="text-sm font-bold text-good dark:text-good-dark">✓ Photo captured</p>
         )}
 
-        {(cameraError || status === 'idle') && (
+        {cameraError && (
           <button
             type="button"
             onClick={() => {
-              setSnapshot('data:,')
+              setSnapshot(null)
               setStatus('done')
-              onVerified(true)
+              onVerified(true, null)
             }}
             className="text-[12px] font-semibold text-ink-faint underline hover:text-ink-soft dark:text-ink-faint-dark dark:hover:text-ink-soft-dark"
           >
-            No camera available, skip for this demo
+            Continue without a photo for now
           </button>
         )}
       </div>

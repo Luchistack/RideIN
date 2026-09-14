@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AuthLayout from '../components/auth/AuthLayout.jsx'
-import GoogleSignInButton from '../components/auth/GoogleSignInButton.jsx'
 import FaceVerificationStep from '../components/auth/FaceVerificationStep.jsx'
 import FormField from '../components/ui/FormField.jsx'
 import Stepper from '../components/ui/Stepper.jsx'
@@ -30,13 +29,14 @@ const emptyForm = {
 }
 
 export default function SignupRiderPage() {
-  const { signupRider, isEmailTaken } = useAuth()
+  const { signupRider, isEmailTaken, updatePhoto } = useAuth()
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
   const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
+  const [facePhoto, setFacePhoto] = useState(null) // data URL from FaceVerificationStep, if a real photo was captured
 
   function set(field) {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }))
@@ -76,13 +76,34 @@ export default function SignupRiderPage() {
     setStep(2)
   }
 
-  function handleVerified(value) {
+  function handleVerified(value, photoDataUrl) {
     setForm((f) => ({ ...f, faceVerified: value }))
+    setFacePhoto(photoDataUrl || null)
+  }
+
+  // A captured selfie comes back as a data URL; the upload endpoint wants a
+  // real File, so convert it the same way a <input type="file"> would give us one.
+  function dataUrlToFile(dataUrl, filename) {
+    const [header, base64] = dataUrl.split(',')
+    const mime = header.match(/:(.*?);/)[1]
+    const binary = atob(base64)
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+    return new File([bytes], filename, { type: mime })
   }
 
   async function finish() {
     setSubmitting(true)
     const result = await signupRider(form)
+    if (result.ok && facePhoto) {
+      try {
+        await updatePhoto(dataUrlToFile(facePhoto, 'face-verification.png'))
+      } catch {
+        // Best-effort: the account is already created; don't block signup
+        // completion just because the photo upload failed. They can add a
+        // photo later from their profile page.
+      }
+    }
     setSubmitting(false)
     if (!result.ok) {
       setError(result.error)
@@ -142,14 +163,6 @@ export default function SignupRiderPage() {
               Continue
             </button>
           </form>
-          <div className="my-5 flex items-center gap-3">
-            <div className="h-px flex-1 bg-line dark:bg-line-dark" />
-            <span className="text-[11.5px] font-semibold uppercase tracking-wide text-ink-faint dark:text-ink-faint-dark">
-              or
-            </span>
-            <div className="h-px flex-1 bg-line dark:bg-line-dark" />
-          </div>
-          <GoogleSignInButton onCredential={handleGoogle} />
         </>
       )}
 

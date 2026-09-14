@@ -3,8 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RideIN — Your routes, made easy</title>
+    <title>RideIN, Your routes, made easy</title>
     <meta name="description" content="RideIN is a ride ordering and management system for estate keke drivers, starting with Millennium Estate." />
+
+    <!-- PWA / "Add to Home Screen" support. The manifest link itself and the
+         service-worker registration are injected automatically by
+         vite-plugin-pwa (see vite.config.js) — everything below is the extra
+         set of tags iOS Safari specifically needs, since it never reads the
+         manifest for its own install behavior the way Android/Chrome do. -->
+    <meta name="theme-color" content="#1F4E43" />
+    <link rel="icon" type="image/png" href="/icons/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="RideIN" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

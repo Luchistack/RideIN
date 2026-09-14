@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AuthLayout from '../components/auth/AuthLayout.jsx'
-import GoogleSignInButton from '../components/auth/GoogleSignInButton.jsx'
 import FormField from '../components/ui/FormField.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 
@@ -80,15 +79,6 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <div className="my-5 flex items-center gap-3">
-        <div className="h-px flex-1 bg-line dark:bg-line-dark" />
-        <span className="text-[11.5px] font-semibold uppercase tracking-wide text-ink-faint dark:text-ink-faint-dark">
-          or
-        </span>
-        <div className="h-px flex-1 bg-line dark:bg-line-dark" />
-      </div>
-
-      <GoogleSignInButton onCredential={handleGoogle} text="signin_with" />
 
       <p className="mt-6 text-center text-[13px] text-ink-soft dark:text-ink-soft-dark">
         New to RideIN?{' '}
