@@ -252,7 +252,7 @@ export default function SignupRiderPage() {
             </button>
           </div>
           <p className="mt-4 text-center text-[11.5px] text-ink-faint dark:text-ink-faint-dark">
-            Your account starts as "pending review" until estate management confirms your details.
+            Your account starts as "pending review" until Admin confirms your details.
           </p>
         </div>
       )}

@@ -188,7 +188,6 @@ export default function BookRidePage() {
   const [locateError, setLocateError] = useState('')
   const [houseNumber, setHouseNumber] = useState('')
   const [street, setStreet] = useState('')
-  const [pinCoords, setPinCoords] = useState(null) // map-picked coords for manual mode
   const [riders, setRiders] = useState([])
   const [selectedRiderId, setSelectedRiderId] = useState(null)
   const [submitting, setSubmitting] = useState(false)
@@ -293,6 +292,15 @@ export default function BookRidePage() {
     return <Navigate to="/login" replace />
   }
 
+  // The backend stores lat/lng to 6 decimal places (~11cm precision --
+  // already far more precise than needed). Raw GPS/map coordinates often
+  // carry many more decimal digits than that, which the backend rejects
+  // outright ("Ensure that there are no more than 6 decimal places").
+  // Round at the source so this never reaches the API.
+  function round6(n) {
+    return Math.round(n * 1e6) / 1e6
+  }
+
   function shareLiveLocation() {
     if (!navigator.geolocation) {
       setLocateError('This browser has no location support. Enter your address manually instead.')
@@ -302,7 +310,7 @@ export default function BookRidePage() {
     setLocateError('')
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy }
+        const coords = { lat: round6(pos.coords.latitude), lng: round6(pos.coords.longitude), accuracy: pos.coords.accuracy }
         setLiveCoords(coords)
         setLocating(false)
         upsertMyLocation(coords.lat, coords.lng, coords.accuracy).catch(() => {})
@@ -315,11 +323,33 @@ export default function BookRidePage() {
     )
   }
 
+  // Keep sharing an updated location every 15s while live sharing is on
+  // and there's no reason to stop (no ride yet, or an open one) -- so the
+  // rider's map actually tracks movement instead of one static snapshot.
+  useEffect(() => {
+    if (pickupMode !== 'live' || !liveCoords) return
+    if (activeRide && !OPEN_STATUSES.includes(activeRide.status)) return
+    if (!navigator.geolocation) return
+    const id = setInterval(() => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const coords = { lat: round6(pos.coords.latitude), lng: round6(pos.coords.longitude), accuracy: pos.coords.accuracy }
+          setLiveCoords(coords)
+          upsertMyLocation(coords.lat, coords.lng, coords.accuracy).catch(() => {})
+        },
+        () => {},
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 },
+      )
+    }, 15000)
+    return () => clearInterval(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pickupMode, !!liveCoords, activeRide?.status])
+
   function pickupCoords() {
     if (pickupMode === 'live' && liveCoords) return { lat: liveCoords.lat, lng: liveCoords.lng }
-    if (pickupMode === 'manual' && pinCoords) return pinCoords
-    // Fallback only if the map picker hasn't been touched yet.
-    return { lat: MILLENNIUM_ESTATE.center.lat, lng: MILLENNIUM_ESTATE.center.lng }
+    // Manual mode has no map pin -- the address text is what matters
+    // there, coordinates just default to the estate center.
+    return { lat: round6(MILLENNIUM_ESTATE.center.lat), lng: round6(MILLENNIUM_ESTATE.center.lng) }
   }
 
   function pickupAddressText() {
@@ -525,9 +555,18 @@ export default function BookRidePage() {
             {pickupMode === 'live' ? (
               <div className="mb-4">
                 {liveCoords ? (
-                  <div className="rounded-xl border border-good/30 bg-good/10 px-3.5 py-3 text-[12.5px] font-semibold text-good dark:border-good-dark/30 dark:bg-good-dark/10 dark:text-good-dark">
-                    ✓ Location shared, riders will see exactly where you're standing.
-                  </div>
+                  <>
+                    <div className="mb-3 rounded-xl border border-good/30 bg-good/10 px-3.5 py-3 text-[12.5px] font-semibold text-good dark:border-good-dark/30 dark:bg-good-dark/10 dark:text-good-dark">
+                      ✓ Location shared, riders will see exactly where you're standing.
+                    </div>
+                    <LocationPickerMap
+                      center={liveCoords}
+                      value={liveCoords}
+                      onChange={() => {}}
+                      readOnly
+                      height={180}
+                    />
+                  </>
                 ) : (
                   <button
                     type="button"
@@ -564,16 +603,6 @@ export default function BookRidePage() {
                     onChange={(e) => setStreet(e.target.value)}
                     placeholder="e.g. Palm Street, Block 14"
                     className="w-full rounded-[9px] border border-line bg-paper px-3.5 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-brand dark:border-line-dark dark:bg-paper-dark dark:text-ink-dark"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="mb-1.5 block text-[12.5px] font-semibold text-ink-soft dark:text-ink-soft-dark">
-                    Pin your exact spot
-                  </label>
-                  <LocationPickerMap
-                    center={MILLENNIUM_ESTATE.center}
-                    value={pinCoords || MILLENNIUM_ESTATE.center}
-                    onChange={setPinCoords}
                   />
                 </div>
               </div>

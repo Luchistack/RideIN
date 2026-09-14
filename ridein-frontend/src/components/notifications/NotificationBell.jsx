@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthContext.jsx'
 
-const POLL_MS = 25000
+const POLL_MS = 5000
 
 function timeAgo(iso) {
   const diffMs = Date.now() - new Date(iso).getTime()

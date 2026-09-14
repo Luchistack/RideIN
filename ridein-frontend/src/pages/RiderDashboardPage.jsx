@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { formatNaira } from '../data/fares.js'
 import Avatar from '../components/ui/Avatar.jsx'
+import LocationPickerMap from '../components/ui/LocationPickerMap.jsx'
 
 const AVAILABLE_POLL_MS = 8000
 const ACTIVE_POLL_MS = 6000
@@ -37,9 +38,25 @@ function AvailableRideCard({ ride, onAccept, busy }) {
           )}
         </div>
       </div>
-      <div className="mb-3 rounded-xl bg-surface-2 px-3 py-2.5 text-[12.5px] text-ink-soft dark:bg-surface-2-dark dark:text-ink-soft-dark">
-        {ride.pickupAddress || 'Pickup shared as a live location, open the map to see it.'}
-      </div>
+      {ride.pickupAddress ? (
+        <div className="mb-3 rounded-xl bg-surface-2 px-3 py-2.5 text-[12.5px] text-ink-soft dark:bg-surface-2-dark dark:text-ink-soft-dark">
+          {ride.pickupAddress}
+        </div>
+      ) : ride.pickupLat != null && ride.pickupLng != null ? (
+        <div className="mb-3">
+          <LocationPickerMap
+            center={{ lat: ride.pickupLat, lng: ride.pickupLng }}
+            value={{ lat: ride.pickupLat, lng: ride.pickupLng }}
+            onChange={() => {}}
+            readOnly
+            height={140}
+          />
+        </div>
+      ) : (
+        <div className="mb-3 rounded-xl bg-surface-2 px-3 py-2.5 text-[12.5px] text-ink-soft dark:bg-surface-2-dark dark:text-ink-soft-dark">
+          Pickup location not shared yet.
+        </div>
+      )}
       {ride.fare != null && (
         <div className="mb-3 font-mono text-[13px] font-bold text-brand dark:text-brand-light">
           {formatNaira(ride.fare)}
@@ -181,6 +198,34 @@ function RatePassengerCell({ ride, onRated }) {
 }
 
 function ActiveRideBanner({ ride, onCancel, cancelling, payment }) {
+  const { getPassengerLocation } = useAuth()
+  const [passengerLoc, setPassengerLoc] = useState(null)
+  const [locationSeen, setLocationSeen] = useState(false)
+
+  useEffect(() => {
+    setPassengerLoc(null)
+    setLocationSeen(false)
+  }, [ride.id])
+
+  useEffect(() => {
+    if (ride.pickupAddress || locationSeen || !ride.passenger || !ride.passenger.id) return
+    let cancelled = false
+    async function poll() {
+      try {
+        const loc = await getPassengerLocation(ride.passenger.id)
+        if (!cancelled) setPassengerLoc(loc)
+      } catch (e) {
+        // No live location on file yet -- keep quiet.
+      }
+    }
+    poll()
+    const id = setInterval(poll, 10000)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
+  }, [ride.id, ride.pickupAddress, ride.passenger, locationSeen, getPassengerLocation])
+
   return (
     <div className="mb-10 rounded-[26px] border-2 border-line bg-gradient-to-b from-surface to-surface-2 p-4 shadow-[0_24px_55px_-22px_rgba(0,0,0,0.4)] dark:border-line-dark dark:from-surface-dark dark:to-surface-2-dark dark:shadow-[0_24px_55px_-22px_rgba(0,0,0,0.7)]">
       <div className="rounded-[18px] bg-paper p-4 dark:bg-paper-dark">
@@ -211,6 +256,24 @@ function ActiveRideBanner({ ride, onCancel, cancelling, payment }) {
             </a>
           )}
         </div>
+        {passengerLoc && !locationSeen ? (
+          <div className="mb-3">
+            <LocationPickerMap
+              center={passengerLoc}
+              value={passengerLoc}
+              onChange={function () {}}
+              readOnly
+              height={180}
+            />
+            <button
+              type="button"
+              onClick={function () { setLocationSeen(true) }}
+              className="mt-2 w-full rounded-full border border-line py-2 text-[12px] font-bold hover:border-ink-faint dark:border-line-dark dark:hover:border-ink-faint-dark"
+            >
+              Seen, hide map
+            </button>
+          </div>
+        ) : null}
         <PaymentStatusNote payment={payment} />
         <p className="mb-3 text-[12px] text-ink-faint dark:text-ink-faint-dark">
           If the passenger isn't at the pickup spot, you're not required to wait, lateness fees are settled
@@ -563,7 +626,7 @@ export default function RiderDashboardPage() {
           </table>
         </div>
         <p className="mt-3 text-[12px] text-ink-faint dark:text-ink-faint-dark">
-          Notice something wrong with a record? Contact estate management or RideIN support, riders can't edit or
+          Notice something wrong with a record? Contact Admin or RideIN support, riders can't edit or
           clear their own history, by design.
         </p>
       </section>

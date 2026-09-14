@@ -20,7 +20,21 @@ export default function FaceVerificationStep({ onVerified }) {
     }
   }, [])
 
-  async function startCamera() {
+  function waitForVideoReady(video) {
+  return new Promise((resolve) => {
+    if (video.videoWidth > 0 && video.videoHeight > 0) {
+      resolve()
+      return
+    }
+    const check = () => {
+      if (video.videoWidth > 0 && video.videoHeight > 0) resolve()
+      else requestAnimationFrame(check)
+    }
+    requestAnimationFrame(check)
+  })
+}
+
+async function startCamera() {
     setCameraError(null)
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
@@ -28,6 +42,7 @@ export default function FaceVerificationStep({ onVerified }) {
       if (videoRef.current) {
         videoRef.current.srcObject = stream
         await videoRef.current.play()
+        await waitForVideoReady(videoRef.current)
       }
       setStatus('camera')
     } catch (err) {
@@ -39,6 +54,10 @@ export default function FaceVerificationStep({ onVerified }) {
     const video = videoRef.current
     const canvas = canvasRef.current
     if (!video || !canvas) return
+    if (!video.videoWidth || !video.videoHeight) {
+      setCameraError('Camera is still loading, wait a second and tap Capture again.')
+      return
+    }
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
     canvas.getContext('2d').drawImage(video, 0, 0)
@@ -64,7 +83,7 @@ export default function FaceVerificationStep({ onVerified }) {
     <div className="rounded-2xl border border-line bg-surface p-6 dark:border-line-dark dark:bg-surface-dark">
       <h3 className="mb-1.5 text-lg font-bold normal-case">Face verification</h3>
       <p className="mb-4 text-[13.5px] text-ink-soft dark:text-ink-soft-dark">
-        Take a clear selfie so passengers and estate management can confirm it's really you.
+        Take a clear selfie so passengers and Admin can confirm it's really you.
       </p>
 
       <div className="mx-auto mb-4 flex h-52 w-52 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-line bg-surface-2 dark:border-line-dark dark:bg-surface-2-dark">

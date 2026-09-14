@@ -19,7 +19,7 @@ L.Icon.Default.mergeOptions({
 // A small OpenStreetMap location picker: a draggable pin you can also
 // reposition by tapping anywhere on the map. Free -- no API key, no
 // billing -- via OpenStreetMap's tile servers.
-export default function LocationPickerMap({ center, value, onChange, height = 220 }) {
+export default function LocationPickerMap({ center, value, onChange, height = 220, readOnly = false }) {
   const mapRef = useRef(null)
   const mapInstanceRef = useRef(null)
   const markerRef = useRef(null)
@@ -37,15 +37,17 @@ export default function LocationPickerMap({ center, value, onChange, height = 22
       attribution: '&copy; OpenStreetMap contributors',
     }).addTo(map)
 
-    const marker = L.marker([start.lat, start.lng], { draggable: true }).addTo(map)
-    marker.on('dragend', () => {
-      const { lat, lng } = marker.getLatLng()
-      onChange({ lat, lng })
-    })
-    map.on('click', (e) => {
-      marker.setLatLng(e.latlng)
-      onChange({ lat: e.latlng.lat, lng: e.latlng.lng })
-    })
+    const marker = L.marker([start.lat, start.lng], { draggable: !readOnly }).addTo(map)
+    if (!readOnly) {
+      marker.on('dragend', () => {
+        const { lat, lng } = marker.getLatLng()
+        onChange({ lat, lng })
+      })
+      map.on('click', (e) => {
+        marker.setLatLng(e.latlng)
+        onChange({ lat: e.latlng.lat, lng: e.latlng.lng })
+      })
+    }
 
     mapInstanceRef.current = map
     markerRef.current = marker
@@ -76,7 +78,7 @@ export default function LocationPickerMap({ center, value, onChange, height = 22
         className="w-full overflow-hidden rounded-[11px] border border-line dark:border-line-dark"
       />
       <p className="mt-1.5 text-[11.5px] text-ink-faint dark:text-ink-faint-dark">
-        Tap the map or drag the pin to set your exact spot.
+        {readOnly ? "Passenger's shared pickup spot." : 'Tap the map or drag the pin to set your exact spot.'}
       </p>
     </div>
   )

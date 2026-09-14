@@ -53,7 +53,7 @@ export default function RiderUnderReviewScreen({ status }) {
         <>
           <h1 className="text-2xl font-extrabold normal-case sm:text-3xl">Your application is under review</h1>
           <p className="mt-3 text-[14.5px] leading-relaxed text-ink-soft dark:text-ink-soft-dark">
-            Estate management is looking over your details. This usually takes about an hour, check back here
+            Admin is looking over your details. This usually takes about an hour, check back here
             shortly, and you'll also see a notification in the bell above the moment there's an update.
           </p>
         </>
