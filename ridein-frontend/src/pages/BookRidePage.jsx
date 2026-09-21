@@ -188,6 +188,8 @@ export default function BookRidePage() {
   const [locateError, setLocateError] = useState('')
   const [houseNumber, setHouseNumber] = useState('')
   const [street, setStreet] = useState('')
+  const [fromAddress, setFromAddress] = useState('')
+  const [toAddress, setToAddress] = useState('')
   const [riders, setRiders] = useState([])
   const [selectedRiderId, setSelectedRiderId] = useState(null)
   const [submitting, setSubmitting] = useState(false)
@@ -346,13 +348,16 @@ export default function BookRidePage() {
   }, [pickupMode, !!liveCoords, activeRide?.status])
 
   function pickupCoords() {
-    if (pickupMode === 'live' && liveCoords) return { lat: liveCoords.lat, lng: liveCoords.lng }
-    // Manual mode has no map pin -- the address text is what matters
-    // there, coordinates just default to the estate center.
+    if (rideType !== 'delivery' && pickupMode === 'live' && liveCoords) {
+      return { lat: liveCoords.lat, lng: liveCoords.lng }
+    }
+    // Manual mode and delivery have no map pin -- the address text is what
+    // matters there, coordinates just default to the estate center.
     return { lat: round6(MILLENNIUM_ESTATE.center.lat), lng: round6(MILLENNIUM_ESTATE.center.lng) }
   }
 
   function pickupAddressText() {
+    if (rideType === 'delivery') return fromAddress.trim()
     if (pickupMode === 'manual') {
       const parts = [houseNumber.trim(), street.trim()].filter(Boolean)
       return parts.join(', ')
@@ -361,7 +366,9 @@ export default function BookRidePage() {
   }
 
   const canSubmit =
-    (pickupMode === 'live' && !!liveCoords) || (pickupMode === 'manual' && houseNumber.trim() && street.trim())
+    rideType === 'delivery'
+      ? fromAddress.trim() && toAddress.trim()
+      : (pickupMode === 'live' && !!liveCoords) || (pickupMode === 'manual' && houseNumber.trim() && street.trim())
 
   async function handleRequest(requestedRiderId) {
     if (!canSubmit || submitting) return
@@ -373,6 +380,7 @@ export default function BookRidePage() {
         pickupLat: lat,
         pickupLng: lng,
         pickupAddress: pickupAddressText(),
+        dropoffAddress: rideType === 'delivery' ? toAddress.trim() : undefined,
         requestedRiderId: requestedRiderId || undefined,
         rideType,
       })
@@ -513,7 +521,7 @@ export default function BookRidePage() {
                     <div className="mb-1 flex items-center justify-between">
                       <span className="text-[13.5px] font-bold">{f.label}</span>
                       <span className="font-mono text-[13px] font-bold text-brand dark:text-brand-light">
-                        {formatNaira(f.total)}
+                        {f.total != null ? formatNaira(f.total) : 'Price varies'}
                       </span>
                     </div>
                     <div className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-accent-deep dark:text-accent-light">
@@ -527,6 +535,8 @@ export default function BookRidePage() {
               </div>
             </div>
 
+            {rideType !== 'delivery' ? (
+              <>
             <div className="mb-4 flex gap-1.5 rounded-[10px] bg-surface-2 p-1 dark:bg-surface-2-dark">
               <button
                 type="button"
@@ -605,6 +615,36 @@ export default function BookRidePage() {
                     className="w-full rounded-[9px] border border-line bg-paper px-3.5 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-brand dark:border-line-dark dark:bg-paper-dark dark:text-ink-dark"
                   />
                 </div>
+              </div>
+            )}
+              </>
+            ) : (
+              <div className="mb-4 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-[12.5px] font-semibold text-ink-soft dark:text-ink-soft-dark">
+                    Pickup from
+                  </label>
+                  <input
+                    value={fromAddress}
+                    onChange={(e) => setFromAddress(e.target.value)}
+                    placeholder="e.g. 12B Palm Street, Block 14"
+                    className="w-full rounded-[9px] border border-line bg-paper px-3.5 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-brand dark:border-line-dark dark:bg-paper-dark dark:text-ink-dark"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-[12.5px] font-semibold text-ink-soft dark:text-ink-soft-dark">
+                    Deliver to
+                  </label>
+                  <input
+                    value={toAddress}
+                    onChange={(e) => setToAddress(e.target.value)}
+                    placeholder="e.g. 4 Unity Close"
+                    className="w-full rounded-[9px] border border-line bg-paper px-3.5 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-brand dark:border-line-dark dark:bg-paper-dark dark:text-ink-dark"
+                  />
+                </div>
+                <p className="sm:col-span-2 text-[12px] text-ink-faint dark:text-ink-faint-dark">
+                  Admin will review this and send you the price before a rider is dispatched.
+                </p>
               </div>
             )}
 
@@ -717,11 +757,15 @@ function ActiveRideCard({
           >
             {statusLabel(ride.status)}
           </span>
-          {ride.fare != null && (
+          {ride.fare != null ? (
             <span className="font-mono text-[13px] font-bold text-brand dark:text-brand-light">
               {formatNaira(ride.fare)}
             </span>
-          )}
+          ) : ride.rideType === 'delivery' ? (
+            <span className="rounded-full bg-accent-tint px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-accent-deep dark:bg-accent-tint-dark dark:text-accent-light">
+              Price pending
+            </span>
+          ) : null}
         </div>
 
         {isWaiting && (
@@ -751,10 +795,30 @@ function ActiveRideCard({
           </div>
         )}
 
-        {(ride.pickupAddress || ride.pickupLat != null) && (
+        {ride.pickupAddress ? (
           <div className="mb-4 text-[12.5px] text-ink-soft dark:text-ink-soft-dark">
             <span className="font-semibold">Pickup: </span>
-            {ride.pickupAddress || `${ride.pickupLat?.toFixed(5)}, ${ride.pickupLng?.toFixed(5)} (shared location)`}
+            {ride.pickupAddress}
+          </div>
+        ) : ride.pickupLat != null && ride.pickupLng != null ? (
+          <div className="mb-4">
+            <div className="mb-1.5 text-[12.5px] font-semibold text-ink-soft dark:text-ink-soft-dark">
+              Pickup (live location)
+            </div>
+            <LocationPickerMap
+              center={{ lat: ride.pickupLat, lng: ride.pickupLng }}
+              value={{ lat: ride.pickupLat, lng: ride.pickupLng }}
+              onChange={() => {}}
+              readOnly
+              height={160}
+            />
+          </div>
+        ) : null}
+
+        {ride.dropoffAddress && (
+          <div className="mb-4 text-[12.5px] text-ink-soft dark:text-ink-soft-dark">
+            <span className="font-semibold">Delivering to: </span>
+            {ride.dropoffAddress}
           </div>
         )}
 

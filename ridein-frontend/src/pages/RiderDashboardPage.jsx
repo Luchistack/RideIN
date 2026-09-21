@@ -57,6 +57,12 @@ function AvailableRideCard({ ride, onAccept, busy }) {
           Pickup location not shared yet.
         </div>
       )}
+      {ride.dropoffAddress && (
+        <div className="mb-3 rounded-xl bg-surface-2 px-3 py-2.5 text-[12.5px] text-ink-soft dark:bg-surface-2-dark dark:text-ink-soft-dark">
+          <span className="font-semibold">Deliver to: </span>
+          {ride.dropoffAddress}
+        </div>
+      )}
       {ride.fare != null && (
         <div className="mb-3 font-mono text-[13px] font-bold text-brand dark:text-brand-light">
           {formatNaira(ride.fare)}
@@ -246,6 +252,12 @@ function ActiveRideBanner({ ride, onCancel, cancelling, payment }) {
             <div className="truncate text-[12px] text-ink-faint dark:text-ink-faint-dark">
               {ride.pickupAddress || 'Live location shared'}
             </div>
+            {ride.dropoffAddress && (
+              <div className="truncate text-[12px] text-ink-faint dark:text-ink-faint-dark">
+                <span className="font-semibold">To: </span>
+                {ride.dropoffAddress}
+              </div>
+            )}
           </div>
           {ride.passenger?.phone && (
             <a

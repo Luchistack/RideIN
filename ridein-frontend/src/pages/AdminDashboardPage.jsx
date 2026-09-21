@@ -193,6 +193,7 @@ function SearchBar({ q, setQ, month, setMonth, onSearch, placeholder }) {
 const TABS = [
   { id: 'riders', label: 'Riders' },
   { id: 'passengers', label: 'Passengers' },
+  { id: 'deliveries', label: 'Deliveries' },
   { id: 'payments', label: 'Payments' },
   { id: 'support', label: 'Support' },
 ]
@@ -208,6 +209,7 @@ export default function AdminDashboardPage() {
   const [statsPending, setStatsPending] = useState(0)
   const [statsPassengers, setStatsPassengers] = useState(0)
   const [statsThreads, setStatsThreads] = useState(0)
+  const [statsDeliveries, setStatsDeliveries] = useState(0)
 
   if (!user || user.role !== 'admin') {
     return <Navigate to="/login" replace />
@@ -231,11 +233,12 @@ export default function AdminDashboardPage() {
         </button>
       </div>
 
-      <div className="mb-8 grid gap-4 sm:grid-cols-4">
+      <div className="mb-8 grid gap-4 sm:grid-cols-5">
         <StatCard label="Riders" value={statsRiders} />
         <StatCard label="Pending review" value={statsPending} />
         <StatCard label="Passengers" value={statsPassengers} />
         <StatCard label="Support threads" value={statsThreads} />
+        <StatCard label="Deliveries pending price" value={statsDeliveries} />
       </div>
 
       <div className="mb-6 flex gap-2 border-b border-line dark:border-line-dark">
@@ -264,9 +267,116 @@ export default function AdminDashboardPage() {
         />
       )}
       {tab === 'passengers' && <PassengersTab onStats={setStatsPassengers} />}
+      {tab === 'deliveries' && <DeliveriesTab onStats={setStatsDeliveries} />}
       {tab === 'payments' && <PaymentsTab />}
       {tab === 'support' && <SupportTab onStats={setStatsThreads} />}
     </div>
+  )
+}
+
+function DeliveriesTab({ onStats }) {
+  const { listPendingDeliveries, setDeliveryPrice } = useAuth()
+  const [rides, setRides] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [err, setErr] = useState('')
+  const [busyId, setBusyId] = useState(null)
+  const [priceInputs, setPriceInputs] = useState({})
+
+  async function load() {
+    setLoading(true)
+    setErr('')
+    try {
+      const results = await listPendingDeliveries()
+      setRides(results)
+      onStats(results.length)
+    } catch (e) {
+      setErr(e.message || 'Could not load deliveries.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function sendPrice(rideId) {
+    const raw = priceInputs[rideId]
+    const amount = Number(raw)
+    if (!raw || Number.isNaN(amount) || amount <= 0) {
+      setErr('Enter a valid price first.')
+      return
+    }
+    setBusyId(rideId)
+    setErr('')
+    try {
+      await setDeliveryPrice(rideId, amount)
+      await load()
+    } catch (e) {
+      setErr(e.message || 'Could not set that price.')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  return (
+    <section>
+      {err && <p className="mb-3 text-[12.5px] font-semibold text-danger dark:text-danger-dark">{err}</p>}
+      {loading && <p className="text-[13px] text-ink-faint dark:text-ink-faint-dark">Loading…</p>}
+      {!loading && rides.length === 0 && (
+        <p className="rounded-2xl border border-dashed border-line px-4 py-6 text-center text-[13px] text-ink-faint dark:border-line-dark dark:text-ink-faint-dark">
+          No delivery requests waiting on a price.
+        </p>
+      )}
+      {!loading && rides.length > 0 && (
+        <div className="flex flex-col gap-3">
+          {rides.map((r) => {
+            const busy = busyId === r.id
+            return (
+              <div
+                key={r.id}
+                className="rounded-2xl border border-line bg-surface p-4 dark:border-line-dark dark:bg-surface-dark"
+              >
+                <div className="mb-2 flex items-center gap-2.5">
+                  <Avatar name={r.passenger?.name} photo={r.passenger?.photo} size={28} />
+                  <div>
+                    <div className="text-[13.5px] font-bold">{r.passenger?.name}</div>
+                    <div className="text-[11.5px] text-ink-faint dark:text-ink-faint-dark">{r.passenger?.email}</div>
+                  </div>
+                </div>
+                <div className="mb-1 text-[12.5px] text-ink-soft dark:text-ink-soft-dark">
+                  <span className="font-semibold">From: </span>
+                  {r.pickupAddress || 'Not provided'}
+                </div>
+                <div className="mb-3 text-[12.5px] text-ink-soft dark:text-ink-soft-dark">
+                  <span className="font-semibold">To: </span>
+                  {r.dropoffAddress || 'Not provided'}
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <input
+                    type="number"
+                    min="1"
+                    value={priceInputs[r.id] ?? ''}
+                    onChange={(e) => setPriceInputs((prev) => ({ ...prev, [r.id]: e.target.value }))}
+                    placeholder="Price in ₦"
+                    className="w-32 rounded-full border border-line bg-paper px-3 py-1.5 text-[12.5px] outline-none focus:ring-2 focus:ring-brand dark:border-line-dark dark:bg-paper-dark dark:text-ink-dark"
+                  />
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => sendPrice(r.id)}
+                    className={BTN_PRIMARY}
+                  >
+                    {busy ? 'Sending…' : 'Send price'}
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </section>
   )
 }
 

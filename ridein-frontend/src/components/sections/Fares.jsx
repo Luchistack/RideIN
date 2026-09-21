@@ -10,10 +10,12 @@ export default function Fares() {
           title="One price. Always shown before you ride."
           lede="RideIN doesn't mark up the rider's fare, it adds one visible service fee on top, so riders always get their full rate."
         />
-        <div className="grid gap-6 md:grid-cols-2">
-          {Object.values(FARES).map((fare) => (
-            <FareCard key={fare.key} fare={fare} />
-          ))}
+        <div className="grid gap-6 md:grid-cols-3">
+          {Object.values(FARES)
+            .filter((fare) => fare.total != null)
+            .map((fare) => (
+              <FareCard key={fare.key} fare={fare} />
+            ))}
         </div>
       </div>
     </section>

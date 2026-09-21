@@ -19,6 +19,24 @@ export const FARES = {
     serviceFee: 300,
     total: 1500,
   },
+  urgent: {
+    key: 'urgent',
+    label: 'Urgent pickup',
+    badge: 'Priority',
+    description: 'Same as Pickup, but flagged so a rider grabs it fast.',
+    riderFare: 1700,
+    serviceFee: 300,
+    total: 2000,
+  },
+  delivery: {
+    key: 'delivery',
+    label: 'Pickup and delivery',
+    badge: 'Price set by Admin',
+    description: 'Keke picks up an item and drops it off elsewhere in the estate. Admin reviews your addresses and sends you the price before a rider is dispatched.',
+    riderFare: null,
+    serviceFee: null,
+    total: null,
+  },
 }
 
 // The thin space after ₦ is intentional: it's visually negligible but stops the

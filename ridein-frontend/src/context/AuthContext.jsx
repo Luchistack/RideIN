@@ -89,6 +89,7 @@ function normalizeRide(apiRide) {
     pickupLat: apiRide.pickup_lat != null ? Number(apiRide.pickup_lat) : null,
     pickupLng: apiRide.pickup_lng != null ? Number(apiRide.pickup_lng) : null,
     pickupAddress: apiRide.pickup_address || '',
+    dropoffAddress: apiRide.dropoff_address || '',
     rideType: apiRide.ride_type || 'pickup',
     fare: apiRide.fare != null ? Number(apiRide.fare) : null,
     tipAmount: apiRide.tip_amount != null ? Number(apiRide.tip_amount) : 0,
@@ -389,15 +390,29 @@ export function AuthProvider({ children }) {
   // or omit it to broadcast to every approved rider nearby. rideType is
   // 'pickup' (default, shared/₦400) or 'chatter' (private/₦1500) -- the
   // server looks up the matching flat fare, it's never sent from here.
-  async function requestRide({ pickupLat, pickupLng, pickupAddress, requestedRiderId, rideType } = {}) {
+  async function requestRide({ pickupLat, pickupLng, pickupAddress, dropoffAddress, requestedRiderId, rideType } = {}) {
     const body = {
       pickup_lat: pickupLat,
       pickup_lng: pickupLng,
       pickup_address: pickupAddress || '',
+      dropoff_address: dropoffAddress || '',
       ride_type: rideType || 'pickup',
     }
     if (requestedRiderId) body.requested_rider_id = requestedRiderId
     const data = await api.post('/rides/request/', body)
+    return normalizeRide(data)
+  }
+
+  // Admin-only: "pickup and delivery" rides waiting on a price before
+  // riders can see them.
+  async function listPendingDeliveries() {
+    const data = await api.get('/rides/admin/deliveries/pending/')
+    const results = Array.isArray(data) ? data : data.results || []
+    return results.map(normalizeRide)
+  }
+
+  async function setDeliveryPrice(rideId, fare) {
+    const data = await api.post(`/rides/${rideId}/set-price/`, { fare })
     return normalizeRide(data)
   }
 
@@ -535,6 +550,8 @@ export function AuthProvider({ children }) {
         logout,
         updatePhoto,
         approveRider,
+        listPendingDeliveries,
+        setDeliveryPrice,
         declineRider,
         appealDecline,
         listAllUsers,
