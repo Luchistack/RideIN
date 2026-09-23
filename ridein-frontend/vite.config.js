@@ -37,6 +37,12 @@ export default defineConfig({
         // never a stale cached copy, so this deliberately has NO runtime
         // caching rule for api.ridein.ng.
         navigateFallback: '/index.html',
+        // The hosted APK download lives at /app/ridein.apk. Without this,
+        // a direct browser navigation there (tap the download link) gets
+        // caught by the line above and silently served the cached app
+        // shell instead of the actual file -- looks like a blank page,
+        // no download ever happens.
+        navigateFallbackDenylist: [/^\/app\//],
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
       },
       devOptions: {
