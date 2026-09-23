@@ -106,10 +106,9 @@ function FeatureList({ items }) {
 function PassengerCopy({ compact = false }) {
   return (
     <div className={compact ? '' : 'pt-1.5'}>
-      <h3 className="text-[22px] font-extrabold normal-case">Choose who picks you up, always.</h3>
+      <h3 className="text-[22px] font-extrabold normal-case">Choose who picks you up.</h3>
       <p className="mt-2.5 max-w-[44ch] text-ink-soft dark:text-ink-soft-dark">
-        Tap any rider on the map to see their rating and how far out they are. If they can't take the ride, close
-        the sheet and pick someone else, RideIN never auto-assigns a rider you didn't choose.
+        See each rider's rating and distance. Not right? Close the sheet and pick someone else.
       </p>
       <FeatureList
         items={[
@@ -125,10 +124,9 @@ function PassengerCopy({ compact = false }) {
 function RiderCopy({ compact = false }) {
   return (
     <div className={compact ? '' : 'pt-1.5'}>
-      <h3 className="text-[22px] font-extrabold normal-case">Every passenger waiting, before you move.</h3>
+      <h3 className="text-[22px] font-extrabold normal-case">Every passenger, before you move.</h3>
       <p className="mt-2.5 max-w-[44ch] text-ink-soft dark:text-ink-soft-dark">
-        Riders see exactly who's waiting nearby, whether it's a shared pickup or a chatter booking, before
-        accepting. Tap a passenger pin to view the request and accept it.
+        See every nearby passenger before accepting. Tap a pin to view the request.
       </p>
       <FeatureList
         items={[

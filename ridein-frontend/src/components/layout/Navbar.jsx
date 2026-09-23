@@ -7,13 +7,14 @@ import Avatar from '../ui/Avatar.jsx'
 import NotificationBell from '../notifications/NotificationBell.jsx'
 import SupportRideInButton from './SupportRideInButton.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
+import { useInstallPrompt } from '../../hooks/useInstallPrompt.js'
 
 const LINKS = [
-  { href: '/#how', label: 'How it works' },
-  { href: '/#fares', label: 'Fares' },
-  { href: '/#app', label: 'Open the app' },
-  { href: '/#safety', label: 'Safety' },
-  { href: '/#estates', label: 'For estates' },
+  { to: '/how-it-works', label: 'How it works' },
+  { to: '/fares', label: 'Fares' },
+  { action: 'open-app', label: 'Open the app' },
+  { to: '/safety', label: 'Safety' },
+  { to: '/for-estates', label: 'For estates' },
 ]
 
 function MenuIcon({ className }) {
@@ -32,8 +33,29 @@ function CloseIcon({ className }) {
   )
 }
 
+function NavLinks({ className, onLinkClass, openApp }) {
+  return (
+    <ul className={className}>
+      {LINKS.map((link) => (
+        <li key={link.label}>
+          {link.action === 'open-app' ? (
+            <button type="button" onClick={openApp} className={onLinkClass}>
+              {link.label}
+            </button>
+          ) : (
+            <Link to={link.to} className={onLinkClass}>
+              {link.label}
+            </Link>
+          )}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export default function Navbar() {
   const { user, logout } = useAuth()
+  const { openApp } = useInstallPrompt()
   const location = useLocation()
   const [open, setOpen] = useState(false)
 
@@ -63,18 +85,11 @@ export default function Navbar() {
             inline — that's why the breakpoint differs by login state instead
             of using one fixed value that would overflow for one case or the
             other. */}
-        <ul className={!user ? 'hidden flex-1 justify-center gap-10 lg:flex' : 'hidden flex-1 justify-center gap-10 2xl:flex'}>
-          {LINKS.map((link) => (
-            <li key={link.href}>
-              <a
-                href={link.href}
-                className="whitespace-nowrap text-sm font-semibold text-ink-soft hover:text-ink dark:text-ink-soft-dark dark:hover:text-ink-dark"
-              >
-                {link.label}
-              </a>
-            </li>
-          ))}
-        </ul>
+        <NavLinks
+          className={!user ? 'hidden flex-1 justify-center gap-10 lg:flex' : 'hidden flex-1 justify-center gap-10 2xl:flex'}
+          onLinkClass="whitespace-nowrap text-sm font-semibold text-ink-soft hover:text-ink dark:text-ink-soft-dark dark:hover:text-ink-dark"
+          openApp={openApp}
+        />
 
         <div className={!user ? 'hidden flex-none items-center gap-3 lg:flex' : 'hidden flex-none items-center gap-3 2xl:flex'}>
           <ThemeToggle />
@@ -150,18 +165,11 @@ export default function Navbar() {
               : 'max-h-[calc(100vh-64px)] overflow-y-auto border-t border-line bg-paper px-4 py-4 dark:border-line-dark dark:bg-paper-dark 2xl:hidden'
           }
         >
-          <ul className="mb-4 flex flex-col gap-1">
-            {LINKS.map((link) => (
-              <li key={link.href}>
-                <a
-                  href={link.href}
-                  className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-ink-soft hover:bg-surface-2 hover:text-ink dark:text-ink-soft-dark dark:hover:bg-surface-2-dark dark:hover:text-ink-dark"
-                >
-                  {link.label}
-                </a>
-              </li>
-            ))}
-          </ul>
+          <NavLinks
+            className="mb-4 flex flex-col gap-1"
+            onLinkClass="block rounded-lg px-3 py-2.5 text-sm font-semibold text-ink-soft hover:bg-surface-2 hover:text-ink dark:text-ink-soft-dark dark:hover:bg-surface-2-dark dark:hover:text-ink-dark"
+            openApp={openApp}
+          />
 
           <div className="flex flex-col gap-2 border-t border-line pt-4 dark:border-line-dark">
             {!user && (

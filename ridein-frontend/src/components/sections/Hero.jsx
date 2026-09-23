@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import Button from '../ui/Button.jsx'
 import { FARES, formatNaira } from '../../data/fares.js'
 import { HERO_IMAGES } from '../../data/heroImages.js'
@@ -66,7 +67,7 @@ export default function Hero() {
             <Button as="a" href="#app" variant="primary">
               Request a ride →
             </Button>
-            <Button as="a" href="#estates" variant="ghost" className="!border-white/35 !text-white hover:!border-white/70">
+            <Button as={Link} to="/for-estates" variant="ghost" className="!border-white/35 !text-white hover:!border-white/70">
               Bring RideIN to my estate
             </Button>
           </div>

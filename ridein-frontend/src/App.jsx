@@ -11,6 +11,10 @@ import DashboardPage from './pages/DashboardPage.jsx'
 import ProfilePage from './pages/ProfilePage.jsx'
 import SupportPage from './pages/SupportPage.jsx'
 import BookRidePage from './pages/BookRidePage.jsx'
+import HowItWorksPage from './pages/HowItWorksPage.jsx'
+import FaresPage from './pages/FaresPage.jsx'
+import SafetyPage from './pages/SafetyPage.jsx'
+import ForEstatesPage from './pages/ForEstatesPage.jsx'
 
 export default function App() {
   return (
@@ -33,6 +37,10 @@ export default function App() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/support" element={<SupportPage />} />
             <Route path="/book-ride" element={<BookRidePage />} />
+            <Route path="/how-it-works" element={<HowItWorksPage />} />
+            <Route path="/fares" element={<FaresPage />} />
+            <Route path="/safety" element={<SafetyPage />} />
+            <Route path="/for-estates" element={<ForEstatesPage />} />
           </Routes>
         </main>
         <Footer />
