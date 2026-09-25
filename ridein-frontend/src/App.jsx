@@ -21,12 +21,13 @@ export default function App() {
     <AuthProvider>
       <div className="flex min-h-screen flex-col bg-paper font-body text-ink antialiased dark:bg-paper-dark dark:text-ink-dark">
         <Navbar />
-        {/* flex-1 is what pins the footer to the bottom of the viewport on
-            short pages (e.g. a fresh dashboard with little history yet) —
-            without it, the footer just sits directly under whatever content
-            happens to be there, which on a short page looks like it's
-            floating in the middle instead of anchored to the bottom. */}
-        <main className="flex-1">
+        {/* No flex-1 here on purpose: the footer should follow the
+            content, not get stretched to the bottom of the viewport.
+            On a short page (e.g. Safety, How it works) that stretch left
+            a big empty gap between the content and the footer. Any
+            leftover viewport space now just falls after the footer,
+            which reads as a normal short page instead of a broken one. */}
+        <main>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
