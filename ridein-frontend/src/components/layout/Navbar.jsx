@@ -15,6 +15,7 @@ const LINKS = [
   { action: 'open-app', label: 'Open the app' },
   { to: '/safety', label: 'Safety' },
   { to: '/for-estates', label: 'For estates' },
+  { to: '/faq', label: 'FAQ' },
 ]
 
 function MenuIcon({ className }) {

@@ -15,6 +15,7 @@ import HowItWorksPage from './pages/HowItWorksPage.jsx'
 import FaresPage from './pages/FaresPage.jsx'
 import SafetyPage from './pages/SafetyPage.jsx'
 import ForEstatesPage from './pages/ForEstatesPage.jsx'
+import FAQPage from './pages/FAQPage.jsx'
 
 export default function App() {
   return (
@@ -42,6 +43,7 @@ export default function App() {
             <Route path="/fares" element={<FaresPage />} />
             <Route path="/safety" element={<SafetyPage />} />
             <Route path="/for-estates" element={<ForEstatesPage />} />
+            <Route path="/faq" element={<FAQPage />} />
           </Routes>
         </main>
         <Footer />
