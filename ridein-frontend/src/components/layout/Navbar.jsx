@@ -71,7 +71,7 @@ export default function Navbar() {
   const isAdmin = user && user.role === 'admin'
 
   return (
-    <div className="sticky top-0 z-50 border-b border-line bg-paper/90 backdrop-blur dark:border-line-dark dark:bg-paper-dark/90">
+    <div className="fixed inset-x-0 top-0 z-50 border-b border-line bg-paper/90 backdrop-blur dark:border-line-dark dark:bg-paper-dark/90">
       <div className="mx-auto flex w-full max-w-[1680px] items-center justify-between gap-6 px-4 py-3.5 sm:px-7 sm:py-4 lg:px-10 xl:px-14">
         <Link to="/" className="flex-none">
           <Logo />

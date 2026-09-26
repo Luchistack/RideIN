@@ -28,7 +28,13 @@ export default function App() {
             a big empty gap between the content and the footer. Any
             leftover viewport space now just falls after the footer,
             which reads as a normal short page instead of a broken one. */}
-        <main>
+        {/* pt-16 offsets the fixed navbar above (see Navbar.jsx) -- the
+            navbar used to be position: sticky, which some mobile browsers
+            visibly jerk or hide during scroll as their own address bar
+            collapses/expands. Fixed positioning doesn't have that problem,
+            but it takes the navbar out of normal document flow, so this
+            padding is what stops page content starting underneath it. */}
+        <main className="pt-16">
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
