@@ -9,17 +9,17 @@ const STEPS = [
 
 export default function HowItWorks() {
   return (
-    <section id="how" className="border-y border-line bg-surface px-7 py-16 dark:border-line-dark dark:bg-surface-dark sm:py-20">
+    <section id="how" className="border-y border-line bg-surface px-7 py-8 dark:border-line-dark dark:bg-surface-dark sm:py-20">
       <div className="mx-auto max-w-6xl">
         <SectionHead
           kicker="How it works"
           title="Four stops from gate to destination"
           lede="The same route, every time, whether you're heading out or a rider is heading your way."
         />
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-6 lg:grid-cols-4 lg:gap-10">
           {STEPS.map((step) => (
             <div key={step.n} className="text-center">
-              <div className="mx-auto mb-5 flex h-10 w-10 items-center justify-center rounded-full border-2 border-brand font-display text-[17px] font-extrabold text-brand dark:border-brand-light dark:text-brand-light">
+              <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full border-2 border-brand font-display text-[17px] font-extrabold text-brand dark:border-brand-light dark:text-brand-light">
                 {step.n}
               </div>
               <h3 className="mb-2 text-[17px] font-bold normal-case">{step.title}</h3>

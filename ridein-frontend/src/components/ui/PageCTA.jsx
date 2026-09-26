@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom'
 // step and cross-links the pages to each other instead of back to Home.
 export default function PageCTA({ title, body, primaryLabel, primaryTo, secondaryLabel, secondaryTo }) {
   return (
-    <section className="border-t border-line px-7 py-14 text-center dark:border-line-dark sm:py-16">
+    <section className="border-t border-line px-7 py-6 text-center dark:border-line-dark sm:py-16">
       <div className="mx-auto max-w-xl">
         <h2 className="text-[22px] font-extrabold normal-case">{title}</h2>
         {body && <p className="mt-2.5 text-ink-soft dark:text-ink-soft-dark">{body}</p>}

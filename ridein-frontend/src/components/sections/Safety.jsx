@@ -9,20 +9,20 @@ const ITEMS = [
 
 export default function Safety() {
   return (
-    <section id="safety" className="px-7 py-16 sm:py-20">
+    <section id="safety" className="px-7 py-8 sm:py-20">
       <div className="mx-auto max-w-6xl">
         <SectionHead
           kicker="Safety & trust"
           title="Built for a gated community, not a random street corner"
           lede="Every safeguard below applies before a single naira moves."
         />
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-5">
           {ITEMS.map((item) => (
             <div
               key={item.title}
-              className="rounded-2xl border border-line bg-surface p-6 dark:border-line-dark dark:bg-surface-dark"
+              className="rounded-2xl border border-line bg-surface p-4 dark:border-line-dark dark:bg-surface-dark sm:p-6"
             >
-              <div className="mb-4 flex h-[42px] w-[42px] items-center justify-center rounded-[11px] bg-brand-tint text-xl dark:bg-brand-tint-dark">
+              <div className="mb-2 flex h-[42px] w-[42px] items-center justify-center rounded-[11px] bg-brand-tint text-xl dark:bg-brand-tint-dark">
                 {item.icon}
               </div>
               <h3 className="mb-2 text-[15.5px] font-bold normal-case">{item.title}</h3>

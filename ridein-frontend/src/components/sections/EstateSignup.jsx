@@ -4,9 +4,9 @@ export default function EstateSignup() {
   return (
     <section
       id="estates"
-      className="border-y border-line bg-brand-tint px-7 py-16 dark:border-line-dark dark:bg-brand-tint-dark sm:py-20"
+      className="border-y border-line bg-brand-tint px-7 py-8 dark:border-line-dark dark:bg-brand-tint-dark sm:py-20"
     >
-      <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2">
+      <div className="mx-auto grid max-w-6xl items-center gap-6 lg:grid-cols-2 lg:gap-12">
         <div>
           <span className="mb-3.5 inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3.5 py-1.5 text-[12.5px] font-semibold uppercase tracking-wider text-brand dark:border-line-dark dark:bg-surface-dark dark:text-brand-light">
             <span className="h-1.5 w-1.5 rounded-full bg-brand dark:bg-brand-light" />
