@@ -19,7 +19,7 @@ import ForEstatesPage from './pages/ForEstatesPage.jsx'
 export default function App() {
   return (
     <AuthProvider>
-      <div className="flex min-h-screen flex-col bg-paper font-body text-ink antialiased dark:bg-paper-dark dark:text-ink-dark">
+      <div className="flex flex-col bg-paper font-body text-ink antialiased dark:bg-paper-dark dark:text-ink-dark">
         <Navbar />
         {/* No flex-1 here on purpose: the footer should follow the
             content, not get stretched to the bottom of the viewport.
